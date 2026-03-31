@@ -36,7 +36,7 @@ document.getElementById('joinBtn').onclick = () => {
     });
 };
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO (52 CARTAS) ---
 
 function initRoom() {
     const suits = ['h', 'd', 'c', 's'];
@@ -46,8 +46,6 @@ function initRoom() {
             deck.push(s + i.toString().padStart(2, '0'));
         }
     }
-    // Adiciona 2 Coringas ao baralho
-    deck.push('joker', 'joker');
     
     deck = deck.sort(() => Math.random() - 0.5);
 
@@ -74,11 +72,13 @@ function enterRoom() {
     database.ref(`salas/${roomName}`).on('value', snapshot => {
         gameState = snapshot.val();
         if (!gameState) return;
+        
         if (gameState.vencedor) {
             alert("FIM DE JOGO! O vencedor é: " + gameState.vencedor);
             location.reload();
             return;
         }
+
         const p1Ok = gameState.jogadores.p1 && gameState.jogadores.p1.ativo;
         const p2Ok = gameState.jogadores.p2 && gameState.jogadores.p2.ativo;
         if (p1Ok && p2Ok) {
@@ -89,68 +89,43 @@ function enterRoom() {
     });
 }
 
-// --- SISTEMA DE DETECÇÃO DE JOGOS (TRINCAS/SEQUÊNCIAS) ---
-
-function canWin(hand) {
-    if (hand.length < 9) return false;
-    
-    // Tenta todas as combinações possíveis de 3 grupos de 3 cartas
-    // Nota: Esta é uma versão simplificada. Para um sistema 100% profissional, 
-    // usaríamos algoritmos de recursão, mas para 9 cartas isso funciona bem:
-    
-    const combos = getPermutations(hand);
-    for (let p of combos) {
-        let g1 = [p[0], p[1], p[2]];
-        let g2 = [p[3], p[4], p[5]];
-        let g3 = [p[6], p[7], p[8]];
-        
-        if (isValidGroup(g1) && isValidGroup(g2) && isValidGroup(g3)) return true;
-    }
-    return false;
-}
+// --- VERIFICAÇÃO DE JOGOS (TRINCA OU SEQUÊNCIA) ---
 
 function isValidGroup(cards) {
-    let jokers = cards.filter(c => c === 'joker').length;
-    let normals = cards.filter(c => c !== 'joker').map(c => ({
+    if (cards.length !== 3) return false;
+    
+    let parsed = cards.map(c => ({
         suit: c[0],
         val: parseInt(c.substring(1))
     }));
 
-    if (jokers === 3) return true; // 3 coringas é jogo
+    // TRINCA: Mesmos valores, naipes diferentes
+    const sameVal = parsed.every(c => c.val === parsed[0].val);
+    const diffSuits = new Set(parsed.map(c => c.suit)).size === 3;
+    if (sameVal && diffSuits) return true;
 
-    // TRINCA (Mesmo valor, naipes diferentes)
-    if (normals.every(c => c.val === normals[0].val)) {
-        let suits = new Set(normals.map(c => c.suit));
-        if (suits.size === normals.length) return true;
-    }
+    // SEQUÊNCIA: Mesmo naipe, valores em ordem
+    const sameSuit = parsed.every(c => c.suit === parsed[0].suit);
+    const sortedVals = parsed.map(c => c.val).sort((a, b) => a - b);
+    const isSeq = (sortedVals[1] === sortedVals[0] + 1 && sortedVals[2] === sortedVals[1] + 1);
+    if (sameSuit && isSeq) return true;
 
-    // SEQUÊNCIA (Mesmo naipe, valores seguidos)
-    if (normals.every(c => c.suit === normals[0].suit)) {
-        let vals = normals.map(c => c.val).sort((a, b) => a - b);
-        // Lógica de sequência com Coringa
-        if (jokers === 0) return (vals[1] === vals[0] + 1 && vals[2] === vals[1] + 1);
-        if (jokers === 1) return (vals[1] === vals[0] + 1 || vals[1] === vals[0] + 2);
-        if (jokers === 2) return true; // 2 coringas e 1 carta sempre faz sequência
-    }
     return false;
 }
 
-// Auxiliar para testar combinações
-function getPermutations(array) {
-    let res = [];
-    const p = (arr, m = []) => {
-        if (res.length > 500) return; // Limite de busca para não travar
-        if (arr.length === 0) { res.push(m); } 
-        else {
-            for (let i = 0; i < arr.length; i++) {
-                let curr = arr.slice();
-                let next = curr.splice(i, 1);
-                p(curr.slice(), m.concat(next));
-            }
-        }
-    }
-    // Para performance, apenas ordenamos e testamos grupos básicos
-    return [array.sort()]; 
+function canWin(hand) {
+    if (hand.length < 9) return false;
+    
+    // Testa combinações básicas ordenadas
+    let h = [...hand].sort();
+    
+    // Tenta dividir a mão em 3 grupos de 3 (Ex: 012, 345, 678)
+    // Para um Pife real com 9 cartas, as combinações são limitadas
+    let g1 = [h[0], h[1], h[2]];
+    let g2 = [h[3], h[4], h[5]];
+    let g3 = [h[6], h[7], h[8]];
+
+    return isValidGroup(g1) && isValidGroup(g2) && isValidGroup(g3);
 }
 
 // --- RENDERIZAÇÃO ---
@@ -172,21 +147,18 @@ function render() {
         playerHandEl.appendChild(img);
     });
 
-    // Botão de Bater
+    // SISTEMA DE BATIDA (Aparece se tiver os 3 jogos)
     if (isMyTurn && gameState.estado === "descartar" && canWin(currentHand)) {
         if (!document.getElementById('batida-btn')) {
             let btn = document.createElement('button');
             btn.id = 'batida-btn';
             btn.innerText = "BATER!";
-            btn.style.position = "absolute";
-            btn.style.bottom = "150px";
-            btn.style.background = "gold";
-            btn.style.color = "black";
+            btn.style.cssText = "position:absolute; bottom:120px; background:gold; color:black; font-size:20px; padding:15px 30px; z-index:200;";
             btn.onclick = () => database.ref(`salas/${roomName}`).update({ vencedor: playerID });
             document.body.appendChild(btn);
         }
     } else {
-        let b = document.getElementById('batida-btn');
+        const b = document.getElementById('batida-btn');
         if (b) b.remove();
     }
 
