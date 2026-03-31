@@ -11,11 +11,7 @@ let gameState = null;
 let currentHand = [];
 let tempCard = null;
 
-const lobby = document.getElementById('lobby');
-const waitingLobby = document.getElementById('waiting-lobby');
-const gameScreen = document.getElementById('game-container');
-
-// --- LOGIN ---
+// --- ENTRADA E LOGIN ---
 
 document.getElementById('createBtn').onclick = () => {
     const input = document.getElementById('roomInput').value.trim();
@@ -37,9 +33,7 @@ document.getElementById('joinBtn').onclick = () => {
     database.ref('salas/' + roomName).once('value', snapshot => {
         if (!snapshot.exists()) return alert("Sala não encontrada!");
         const data = snapshot.val();
-        const j = data.jogadores || {};
-
-        if (!j.p2 || j.p2.ativo === false) {
+        if (!data.jogadores.p2 || data.jogadores.p2.ativo === false) {
             playerID = "p2";
             enterRoom();
         } else {
@@ -48,7 +42,7 @@ document.getElementById('joinBtn').onclick = () => {
     });
 };
 
-// --- INICIALIZAÇÃO (9 CARTAS) ---
+// --- INICIALIZAÇÃO DO BARALHO (9 CARTAS FIXO) ---
 
 function initRoom() {
     const suits = ['h', 'd', 'c', 's'];
@@ -58,10 +52,9 @@ function initRoom() {
             deck.push(s + i.toString().padStart(2, '0'));
         }
     }
-
     deck = deck.sort(() => Math.random() - 0.5);
 
-    // DISTRIBUIÇÃO ALTERADA PARA 9 CARTAS
+    // DISTRIBUIÇÃO DE 9 CARTAS
     const p1Hand = deck.splice(0, 9);
     const p2Hand = deck.splice(0, 9);
     const firstDisc = deck.pop();
@@ -79,8 +72,8 @@ function initRoom() {
 }
 
 function enterRoom() {
-    lobby.style.display = 'none';
-    waitingLobby.style.display = 'flex';
+    document.getElementById('lobby').style.display = 'none';
+    document.getElementById('waiting-lobby').style.display = 'flex';
 
     const playerPath = `salas/${roomName}/jogadores/${playerID}`;
     database.ref(playerPath).update({ sid: mySessionId, ativo: true });
@@ -94,28 +87,26 @@ function enterRoom() {
         const p2Ok = gameState.jogadores.p2 && gameState.jogadores.p2.ativo;
 
         if (p1Ok && p2Ok) {
-            waitingLobby.style.display = 'none';
-            gameScreen.style.display = 'flex';
+            document.getElementById('waiting-lobby').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
             render();
         } else {
-            gameScreen.style.display = 'none';
-            waitingLobby.style.display = 'flex';
-            document.getElementById('count-number').innerText = (p1Ok && p2Ok) ? "2" : "1";
+            document.getElementById('game-container').style.display = 'none';
+            document.getElementById('waiting-lobby').style.display = 'flex';
+            document.getElementById('count-number').innerText = p2Ok ? "2" : "1";
         }
     });
 }
 
-// --- JOGO ---
+// --- RENDERIZAÇÃO ---
 
 function render() {
-    if (!gameState) return;
     const isMyTurn = gameState.turno === playerID;
-    
     document.getElementById('turn-display').innerText = isMyTurn ? "SEU TURNO" : "TURNO DO OPONENTE";
     document.getElementById('turn-display').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
     document.getElementById('state-display').innerText = `— [${gameState.estado.toUpperCase()}]`;
 
-    // Renderiza 9 cartas (ou 10 durante o descarte)
+    // Minha Mão
     currentHand = gameState.jogadores[playerID].mao || [];
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
@@ -127,6 +118,7 @@ function render() {
         playerHandEl.appendChild(img);
     });
 
+    // Oponente
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppHandCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const opponentHandEl = document.getElementById('opponent-hand');
@@ -140,27 +132,27 @@ function render() {
 
     const lastD = (gameState.descarte || ["back"])[gameState.descarte.length - 1];
     document.getElementById('discard-img').src = `Cards/Classic/${lastD}.png`;
-
     document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
 }
 
-document.getElementById('deck').onclick = () => performBuy('baralho');
-document.getElementById('discard-pile').onclick = () => performBuy('descarte');
+// --- AÇÕES ---
 
-function performBuy(source) {
+document.getElementById('deck').onclick = () => buy('baralho');
+document.getElementById('discard-pile').onclick = () => buy('descarte');
+
+function buy(type) {
     if (gameState.turno !== playerID || gameState.estado !== "comprar") return;
     let newDeck = [...(gameState.baralho || [])];
     let newDiscard = [...(gameState.descarte || [])];
     
-    if (source === 'baralho') {
-        if (newDeck.length === 0) return alert("Acabou o baralho!");
+    if (type === 'baralho') {
         tempCard = newDeck.pop();
         document.getElementById('drawn-card-img').src = `Cards/Classic/${tempCard}.png`;
         database.ref(`salas/${roomName}`).update({ baralho: newDeck, estado: "decidir" });
     } else {
         if (newDiscard.length === 0) return;
-        const cardFromDiscard = newDiscard.pop();
-        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentHand, cardFromDiscard] });
+        const card = newDiscard.pop();
+        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentHand, card] });
         database.ref(`salas/${roomName}`).update({ descarte: newDiscard, estado: "descartar" });
     }
 }
@@ -171,7 +163,7 @@ document.getElementById('keep-btn').onclick = () => {
 };
 
 document.getElementById('discard-instant-btn').onclick = () => {
-    finalizeTurn([...(gameState.descarte || []), tempCard]);
+    finishTurn([...(gameState.descarte || []), tempCard]);
 };
 
 function handleDiscard(index) {
@@ -179,13 +171,12 @@ function handleDiscard(index) {
     let newHand = [...currentHand];
     const removed = newHand.splice(index, 1)[0];
     database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: newHand });
-    finalizeTurn([...(gameState.descarte || []), removed]);
+    finishTurn([...(gameState.descarte || []), removed]);
 }
 
-function finalizeTurn(newDiscardPile) {
+function finishTurn(newDiscardPile) {
     database.ref(`salas/${roomName}`).update({
-        descarte: newDiscardPile,
-        estado: "comprar",
+        descarte: newDiscardPile, estado: "comprar",
         turno: playerID === "p1" ? "p2" : "p1"
     });
 }
