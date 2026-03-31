@@ -3,16 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pife Online</title>
+    <title>Pife Online 9 Cartas</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <script src="firebase.js"></script>
 </head>
 <body>
 
     <div id="lobby">
-        <h1>Pife Multiplayer</h1>
+        <h1>Pife Online</h1>
         <input type="text" id="roomInput" placeholder="Nome da Sala">
         <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
             <button id="createBtn" style="background-color: #2980b9;">Criar Sala</button>
@@ -25,7 +27,7 @@
             <h2>Aguardando Jogador...</h2>
             <div class="player-count">Jogadores: <span id="count-number">1</span> / 2</div>
             <div class="loader"></div>
-            <p>Dica: Abra em uma **aba anônima** para testar sozinho.</p>
+            <p>Envie o nome da sala para seu amigo!</p>
         </div>
     </div>
 
@@ -34,8 +36,10 @@
             <span id="turn-display">Carregando...</span>
             <span id="state-display"></span>
         </div>
+
         <div id="table">
             <div id="opponent-hand" class="hand"></div>
+
             <div class="center-pile">
                 <div id="deck" class="card-slot">
                     <img src="Cards/Classic/back.png" alt="Baralho">
@@ -46,8 +50,10 @@
                     <div class="label">DESCARTE</div>
                 </div>
             </div>
+
             <div id="player-hand" class="hand"></div>
         </div>
+
         <div id="decision-modal" class="modal">
             <div class="modal-content">
                 <h3>Você comprou:</h3>
