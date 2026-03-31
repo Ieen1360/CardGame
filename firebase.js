@@ -8,5 +8,8 @@ const firebaseConfig = {
   appId: "1:45522667511:web:55242fdc999ff84fa290f2"
 };
 
+// Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+
+// Torna o 'db' global para que o script.js possa acessar
+window.db = firebase.database();
