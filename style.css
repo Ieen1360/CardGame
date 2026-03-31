@@ -1,0 +1,14 @@
+body {
+  text-align: center;
+  font-family: Arial;
+}
+
+#mao img {
+  margin: 5px;
+  cursor: pointer;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px;
+}

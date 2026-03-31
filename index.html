@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Pife Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h2>Pife Online</h2>
+
+<div>
+  Sala: <input id="salaInput">
+  <button onclick="entrarSala()">Entrar</button>
+</div>
+
+<p id="turno"></p>
+
+<h3>Descarte</h3>
+<img id="descarteTopo" onclick="pegarDescarte()" width="80">
+
+<h3>Sua mão</h3>
+<div id="mao"></div>
+
+<button onclick="comprar()">Comprar do Baralho</button>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script src="firebase.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
