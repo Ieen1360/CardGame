@@ -2,8 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pife Pro - Duelos & Moedas</title>
+    <title>Pife Royale - Login & Amigos</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -12,69 +11,51 @@
 <body>
 
     <div id="auth-overlay">
-        <div id="lobby">
+        <div id="login-box">
             <h1>Pife Royale</h1>
-            <p>Faça login para salvar suas moedas e amigos</p>
-            <button id="googleLoginBtn" style="background: #db4437; font-size: 1.2rem;">Login com Google</button>
-            <button id="guestBtn" style="background: #7f8c8d; margin-top: 10px;">Jogar como Convidado</button>
+            <button id="googleLoginBtn">Entrar com Google</button>
+            <button id="guestBtn">Jogar como Convidado</button>
         </div>
     </div>
 
-    <div id="main-menu" style="display: none;">
-        <div id="user-profile">
-            <img id="user-photo" src="" alt="Foto">
-            <div class="user-info">
-                <strong id="user-name">Carregando...</strong>
-                <span id="user-coins-display">💰 0</span>
-            </div>
+    <div id="main-menu" style="display:none;">
+        <div class="profile-bar">
+            <img id="user-photo" src="">
+            <span id="user-name"></span>
+            <span id="user-coins-display">💰 0</span>
         </div>
-
-        <div class="menu-tabs">
-            <button onclick="showTab('tab-play')">Jogar</button>
-            <button onclick="showTab('tab-friends')">Amigos</button>
-        </div>
-
-        <div id="tab-play" class="tab-content">
+        
+        <div class="actions">
             <input type="text" id="roomInput" placeholder="Nome da Sala">
-            <button id="createBtn">Criar Sala (Aposta 50)</button>
+            <button id="createBtn">Criar Sala</button>
             <button id="joinBtn">Entrar na Sala</button>
         </div>
 
-        <div id="tab-friends" class="tab-content" style="display:none;">
-            <h3>Seu ID: <small id="my-uid-display"></small></h3>
-            <div id="friends-list">Nenhum amigo online.</div>
-            <hr>
-            <input type="text" id="addFriendInput" placeholder="ID do Amigo">
-            <button id="addFriendBtn">Adicionar</button>
+        <div class="friends-section">
+            <p>Seu ID: <b id="my-uid-display"></b></p>
+            <input type="text" id="addFriendInput" placeholder="ID do Amigo para Duelo">
+            <button id="addFriendBtn">Desafiar Amigo</button>
         </div>
     </div>
 
-    <div id="game-container" style="display: none;">
-        <div id="status-bar">
-            <span id="turn-display">Carregando...</span>
-            <span id="state-display"></span>
+    <div id="game-container" style="display:none;">
+        <div id="turn-display"></div>
+        <div id="state-display"></div>
+        <div id="opponent-hand" class="hand"></div>
+        <div class="center">
+            <div id="deck" class="slot"><img id="deck-img"></div>
+            <div id="discard-pile" class="slot"><img id="discard-img"></div>
         </div>
-        <div id="table">
-            <div id="opponent-hand" class="hand"></div>
-            <div class="center-pile">
-                <div id="deck" class="card-slot"><img src="" id="deck-img"><div class="label">BARALHO</div></div>
-                <div id="discard-pile" class="card-slot"><img src="" id="discard-img"><div class="label">DESCARTE</div></div>
-            </div>
-            <div id="player-hand" class="hand"></div>
-        </div>
+        <div id="player-hand" class="hand"></div>
     </div>
 
-    <div id="decision-modal" class="modal">
-        <div class="modal-content">
-            <h3>Comprou:</h3>
-            <img id="drawn-card-img" src="">
-            <div class="actions">
-                <button id="keep-btn">Ficar</button>
-                <button id="discard-instant-btn">Largar</button>
-            </div>
-        </div>
+    <div id="decision-modal" style="display:none;">
+        <img id="drawn-card-img">
+        <button id="keep-btn">Ficar</button>
+        <button id="discard-instant-btn">Largar</button>
     </div>
 
+    <script src="firebase.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
