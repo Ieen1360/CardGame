@@ -11,5 +11,6 @@ const firebaseConfig = {
 // Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
 
-// Torna o 'db' global para que o script.js possa acessar
+// Torna globais para o script.js acessar
 window.db = firebase.database();
+window.auth = firebase.auth(); // ADICIONE ESTA LINHA
