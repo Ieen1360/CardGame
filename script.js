@@ -1,6 +1,10 @@
 let database;
 const mySessionId = Math.random().toString(36).substring(7);
 
+// Escolhe um verso de carta aleatório para esta sessão
+const randomBackNum = Math.floor(Math.random() * 6) + 1;
+const cardBackPath = `Cards/Classic/Card-Back-0${randomBackNum}.png`;
+
 window.onload = () => { database = window.db || firebase.database(); };
 
 let roomName = "";
@@ -94,28 +98,25 @@ function showGameOver(vencedorId) {
     }
     const msg = (vencedorId === playerID) ? "VOCÊ VENCEU!" : "OPONENTE VENCEU!";
     const cor = (vencedorId === playerID) ? "#2ecc71" : "#e74c3c";
-    overlay.innerHTML = `<h1 style="color:${cor}; font-size:60px; font-weight:bold; text-shadow: 0 0 20px ${cor};">${msg}</h1>`;
+    overlay.innerHTML = `<h1 style="color:${cor}; font-size:60px; font-weight:bold;">${msg}</h1>`;
     setTimeout(() => { location.reload(); }, 1500);
 }
 
-// --- LÓGICA DE VALIDAÇÃO ---
+// --- REGRAS DE VITÓRIA CORRIGIDAS ---
 
 function isValidGroup(cards) {
     if (cards.length !== 3) return false;
-    
-    // Separar naipe (string) e valor (número)
     let p = cards.map(c => ({ s: c[0], v: parseInt(c.substring(1)) }));
     
-    // 1. TRINCA (3 iguais): Todos os valores são iguais
+    // TRINCA: 3 cartas de mesmo valor
     const isTrinca = p.every(card => card.v === p[0].v);
     if (isTrinca) return true;
 
-    // 2. SEQUÊNCIA: Mesmo naipe e valores em ordem (ex: 1, 2, 3)
+    // SEQUÊNCIA: Mesmo naipe e valores seguidos
     const sorted = p.sort((a, b) => a.v - b.v);
     const sameSuit = p.every(card => card.s === p[0].s);
-    const sequential = (sorted[1].v === sorted[0].v + 1 && sorted[2].v === sorted[1].v + 1);
-    
-    if (sameSuit && sequential) return true;
+    const isSeq = (sorted[1].v === sorted[0].v + 1 && sorted[2].v === sorted[1].v + 1);
+    if (sameSuit && isSeq) return true;
 
     return false;
 }
@@ -124,7 +125,7 @@ function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand];
 
-    // Testa todas as combinações de 3 cartas para formar 3 grupos
+    // Testa todas as combinações possíveis para formar 3 jogos
     for (let i = 0; i < h.length; i++) {
         for (let j = i + 1; j < h.length; j++) {
             for (let k = j + 1; k < h.length; k++) {
@@ -155,44 +156,37 @@ function render() {
     document.getElementById('turn-display').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
     document.getElementById('state-display').innerText = `— [${gameState.estado.toUpperCase()}]`;
 
-    // Sincroniza a mão local com o banco de dados
     let rawHand = gameState.jogadores[playerID].mao || [];
     currentHand = [...rawHand].sort();
     
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
 
-    // Lógica do Brilho (Qualquer carta que tenha um par de valor brilha)
+    // Brilho dos Pares (mesmo valor)
     let valCounts = {};
-    currentHand.forEach(c => { 
-        let v = c.substring(1); 
-        valCounts[v] = (valCounts[v] || 0) + 1; 
-    });
+    currentHand.forEach(c => { let v = c.substring(1); valCounts[v] = (valCounts[v] || 0) + 1; });
 
     currentHand.forEach((card, index) => {
         const img = document.createElement('img');
         img.src = `Cards/Classic/${card}.png`;
         img.className = "card-img";
-        
-        // Brilha se houver 2 ou mais cartas do mesmo número
         if (valCounts[card.substring(1)] >= 2) {
             img.style.border = "3px solid gold";
             img.style.boxShadow = "0 0 15px gold";
         }
-        
         img.onclick = () => handleDiscard(index);
         playerHandEl.appendChild(img);
     });
 
-    // VERIFICAÇÃO DE BATIDA
-    const podeBater = canWin(currentHand);
+    // SISTEMA DE BATIDA (Botão)
     const batidaBtnExistente = document.getElementById('batida-btn');
-
-    if (isMyTurn && gameState.estado === "descartar" && podeBater) {
+    // Verifica vitória com as 9 cartas atuais
+    if (isMyTurn && gameState.estado === "descartar" && canWin(currentHand)) {
         if (!batidaBtnExistente) {
             let btn = document.createElement('button');
             btn.id = 'batida-btn';
             btn.innerText = "BATER!";
+            btn.style.cssText = "position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:15px 40px; background:gold; color:black; font-weight:bold; font-size:24px; border:none; border-radius:10px; cursor:pointer; box-shadow: 0 0 20px gold;";
             btn.onclick = () => database.ref(`salas/${roomName}`).update({ vencedor: playerID });
             document.body.appendChild(btn);
         }
@@ -200,25 +194,27 @@ function render() {
         batidaBtnExistente.remove();
     }
 
-    // OPONENTE
+    // ATUALIZA VISUAL DO BARALHO E DESCARTE
+    document.querySelector('#deck img').src = cardBackPath; // Aplica o back aleatório
+    
+    const discArr = gameState.descarte || [];
+    const discImg = document.getElementById('discard-img');
+    if (discArr.length > 0) {
+        discImg.src = `Cards/Classic/${discArr[discArr.length - 1]}.png`;
+    } else {
+        discImg.src = cardBackPath;
+    }
+
+    // ATUALIZA OPONENTE COM BACK ALEATÓRIO
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const oppEl = document.getElementById('opponent-hand');
     oppEl.innerHTML = "";
     for (let i = 0; i < oppCount; i++) {
         let img = document.createElement('img');
-        img.src = "Cards/Classic/Card-Back-01.png"; 
+        img.src = cardBackPath; 
         img.className = "card-img opp";
         oppEl.appendChild(img);
-    }
-
-    // DESCARTE
-    const discArr = gameState.descarte || [];
-    const discImg = document.getElementById('discard-img');
-    if (discArr.length > 0) {
-        discImg.src = `Cards/Classic/${discArr[discArr.length - 1]}.png`;
-    } else {
-        discImg.src = "Cards/Classic/Card-Back-01.png";
     }
 
     document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
@@ -242,15 +238,16 @@ function buy(type) {
     } else {
         if (newDiscard.length === 0) return;
         const card = newDiscard.pop();
-        let currentMao = gameState.jogadores[playerID].mao || [];
-        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentMao, card] });
-        database.ref(`salas/${roomName}`).update({ descarte: newDiscard, estado: "descartar" });
+        let maoAtual = gameState.jogadores[playerID].mao || [];
+        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...maoAtual, card] });
+        database.ref(`salas/${roomName}`).update({ estado: "descartar" });
+        database.ref(`salas/${roomName}`).update({ descarte: newDiscard });
     }
 }
 
 document.getElementById('keep-btn').onclick = () => {
-    let currentMao = gameState.jogadores[playerID].mao || [];
-    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentMao, tempCard] });
+    let maoAtual = gameState.jogadores[playerID].mao || [];
+    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...maoAtual, tempCard] });
     database.ref(`salas/${roomName}`).update({ estado: "descartar" });
 };
 
@@ -260,17 +257,16 @@ document.getElementById('discard-instant-btn').onclick = () => {
 
 function handleDiscard(index) {
     if (gameState.turno !== playerID || gameState.estado !== "descartar") return;
-    // IMPORTANTE: Pegamos a mão exatamente como ela está renderizada (ordenada)
-    let myMaoRendered = [...(gameState.jogadores[playerID].mao || [])].sort();
-    const removed = myMaoRendered.splice(index, 1)[0];
-    
-    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: myMaoRendered });
+    let myMao = [...(gameState.jogadores[playerID].mao || [])].sort();
+    const removed = myMao.splice(index, 1)[0];
+    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: myMao });
     finishTurn([...(gameState.descarte || []), removed]);
 }
 
 function finishTurn(newDiscardPile) {
     database.ref(`salas/${roomName}`).update({
-        descarte: newDiscardPile, estado: "comprar",
+        descarte: newDiscardPile, 
+        estado: "comprar",
         turno: playerID === "p1" ? "p2" : "p1"
     });
 }
