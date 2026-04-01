@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Pife Online Pro</title>
+    <title>Pife Online</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
@@ -11,36 +11,45 @@
     <div id="lobby">
         <h1>PIFE ONLINE</h1>
         <input type="text" id="roomInput" placeholder="Nome da sala...">
-        <button id="createBtn">CRIAR PARTIDA</button>
-        <button id="joinBtn">ENTRAR NA PARTIDA</button>
+        <div style="margin-top:20px">
+            <button id="createBtn">CRIAR SALA</button>
+            <button id="joinBtn">ENTRAR</button>
+        </div>
     </div>
 
-    <div id="game-container" style="display: none;">
-        <div id="scoreboard">
-            <div class="score">VOCÊ: <span id="my-score">0</span></div>
-            <div id="turn-display">TURNO</div>
-            <div class="score">OPONENTE: <span id="opp-score">0</span></div>
+    <div id="waiting-lobby" style="display:none">
+        <h2>Aguardando oponente...</h2>
+    </div>
+
+    <div id="game-container" style="display:none">
+        <div id="status-bar">
+            <span id="turn-display">CARREGANDO...</span>
+            <span id="state-display"></span>
         </div>
 
         <div id="table">
             <div id="opponent-hand" class="hand"></div>
-            <div class="center-area">
-                <div id="deck" class="slot"><img src="" id="deck-img"></div>
-                <div id="discard-pile" class="slot"><img src="" id="discard-img"></div>
-                <div id="history-box">SAÍRAM: <div id="history-list"></div></div>
+            
+            <div class="center">
+                <div id="deck" class="slot"><img src="" id="deck-img"><span>BARALHO</span></div>
+                <div id="discard-pile" class="slot"><img src="" id="discard-img"><span>DESCARTE</span></div>
             </div>
+
             <div id="player-hand" class="hand"></div>
         </div>
     </div>
 
-    <div id="decision-modal" class="modal" style="display:none;">
+    <div id="decision-modal" class="modal" style="display:none">
         <div class="modal-content">
-            <h3>COMPROU:</h3>
+            <h3>VOCÊ COMPROU:</h3>
             <img id="drawn-card-img" src="">
-            <button id="keep-btn">FICAR</button>
-            <button id="discard-instant-btn">LARGAR</button>
+            <div style="display:flex; gap:10px">
+                <button id="keep-btn">FICAR</button>
+                <button id="discard-instant-btn">LARGAR</button>
+            </div>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
