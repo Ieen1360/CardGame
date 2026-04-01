@@ -107,6 +107,7 @@ function isValidGroup(cards) {
 function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand].sort();
+    // Tenta validar 3 grupos de 3 (mão de 9 cartas)
     return isValidGroup([h[0], h[1], h[2]]) && isValidGroup([h[3], h[4], h[5]]) && isValidGroup([h[6], h[7], h[8]]);
 }
 
@@ -158,7 +159,7 @@ function render() {
         oppEl.appendChild(img);
     }
 
-    // COSTAS DO DESCARTE (Se estiver vazio ou recém-criado)
+    // COSTAS DO DESCARTE
     const discardArr = gameState.descarte || [];
     const discardImgEl = document.getElementById('discard-img');
     if (discardArr.length > 0) {
