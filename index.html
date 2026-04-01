@@ -6,22 +6,29 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="firebase.js"></script>
 </head>
 <body>
-    <div id="auth-box" class="central-card">
+    <div class="central-card">
         <h1>Pife Online</h1>
-        <p>Entre para jogar com seus amigos</p>
-        <button id="googleLoginBtn" style="background:#db4437;">Login com Google</button>
-        <button id="guestBtn" style="background:#7f8c8d;">Entrar como Convidado</button>
+        <button id="googleLoginBtn" style="background:#db4437; width: 100%;">Login com Google</button>
+        <button id="guestBtn" style="background:#7f8c8d; width: 100%; margin-top: 10px;">Jogar como Convidado</button>
     </div>
 
     <script>
-        auth.onAuthStateChanged(user => {
-            if (user) window.location.href = "menu.html";
-        });
-        document.getElementById('googleLoginBtn').onclick = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-        document.getElementById('guestBtn').onclick = () => auth.signInAnonymously();
+        window.onload = () => {
+            auth.onAuthStateChanged(user => {
+                if (user) window.location.href = "menu.html";
+            });
+
+            document.getElementById('googleLoginBtn').onclick = () => {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                auth.signInWithPopup(provider);
+            };
+
+            document.getElementById('guestBtn').onclick = () => auth.signInAnonymously();
+        };
     </script>
 </body>
 </html>
