@@ -9,8 +9,7 @@ let gameState = null;
 let currentHand = [];
 let tempCard = null;
 
-// --- SISTEMA DE LOGIN ---
-
+// --- LOGIN ---
 document.getElementById('createBtn').onclick = () => {
     const input = document.getElementById('roomInput').value.trim();
     if (!input) return alert("Digite um nome!");
@@ -36,8 +35,7 @@ document.getElementById('joinBtn').onclick = () => {
     });
 };
 
-// --- INICIALIZAÇÃO DO JOGO ---
-
+// --- INICIALIZAÇÃO ---
 function initRoom() {
     const suits = ['h', 'd', 'c', 's'];
     let deck = [];
@@ -47,7 +45,6 @@ function initRoom() {
         }
     }
     deck = deck.sort(() => Math.random() - 0.5);
-
     const p1Hand = deck.splice(0, 9);
     const p2Hand = deck.splice(0, 9);
     const firstDisc = deck.pop();
@@ -73,8 +70,7 @@ function enterRoom() {
         if (!gameState) return;
         
         if (gameState.vencedor) {
-            alert("🏆 FIM DE JOGO! O vencedor é: " + gameState.vencedor.toUpperCase());
-            location.reload();
+            showGameOver(gameState.vencedor);
             return;
         }
 
@@ -88,38 +84,47 @@ function enterRoom() {
     });
 }
 
-// --- LÓGICA DE DETECÇÃO E VITÓRIA (Pife 9 Cartas) ---
-
-function detectPairs(hand) {
-    let counts = {};
-    let pairs = [];
-    hand.forEach(card => {
-        let val = card.substring(1);
-        counts[val] = (counts[val] || 0) + 1;
-    });
-    for (let v in counts) { if (counts[v] >= 2) pairs.push(v); }
-    return pairs;
+function showGameOver(vencedorId) {
+    let overlay = document.getElementById('game-over-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'game-over-overlay';
+        overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.9); display:flex; justify-content:center; align-items:center; z-index:9999; flex-direction:column; font-family: sans-serif;";
+        document.body.appendChild(overlay);
+    }
+    const msg = (vencedorId === playerID) ? "VOCÊ VENCEU!" : "OPONENTE VENCEU!";
+    const cor = (vencedorId === playerID) ? "#2ecc71" : "#e74c3c";
+    overlay.innerHTML = `<h1 style="color:${cor}; font-size:60px; font-weight:bold; text-shadow: 0 0 20px ${cor};">${msg}</h1>`;
+    setTimeout(() => { location.reload(); }, 1500);
 }
+
+// --- LÓGICA DE VALIDAÇÃO ---
 
 function isValidGroup(cards) {
     if (cards.length !== 3) return false;
+    
+    // Separar naipe (string) e valor (número)
     let p = cards.map(c => ({ s: c[0], v: parseInt(c.substring(1)) }));
-
-    // TRINCA: Mesmo valor, naipes diferentes
-    const isTrinca = p.every(c => c.v === p[0].v) && new Set(p.map(c => c.s)).size === 3;
+    
+    // 1. TRINCA (3 iguais): Todos os valores são iguais
+    const isTrinca = p.every(card => card.v === p[0].v);
     if (isTrinca) return true;
 
-    // SEQUÊNCIA: Mesmo naipe, valores seguidos
-    const isSeq = p.every(c => c.s === p[0].s) && 
-                  p.map(c => c.v).sort((a,b)=>a-b).every((v,i,a) => i===0 || v === a[i-1]+1);
-    return isSeq;
+    // 2. SEQUÊNCIA: Mesmo naipe e valores em ordem (ex: 1, 2, 3)
+    const sorted = p.sort((a, b) => a.v - b.v);
+    const sameSuit = p.every(card => card.s === p[0].s);
+    const sequential = (sorted[1].v === sorted[0].v + 1 && sorted[2].v === sorted[1].v + 1);
+    
+    if (sameSuit && sequential) return true;
+
+    return false;
 }
 
 function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand];
 
-    // Busca exaustiva: Tenta achar 3 grupos de 3 em qualquer ordem
+    // Testa todas as combinações de 3 cartas para formar 3 grupos
     for (let i = 0; i < h.length; i++) {
         for (let j = i + 1; j < h.length; j++) {
             for (let k = j + 1; k < h.length; k++) {
@@ -129,8 +134,8 @@ function canWin(hand) {
                         for (let n = m + 1; n < r1.length; n++) {
                             for (let o = n + 1; o < r1.length; o++) {
                                 if (isValidGroup([r1[m], r1[n], r1[o]])) {
-                                    let lastGroup = r1.filter((_, idx) => idx !== m && idx !== n && idx !== o);
-                                    if (isValidGroup(lastGroup)) return true;
+                                    let last = r1.filter((_, idx) => idx !== m && idx !== n && idx !== o);
+                                    if (isValidGroup(last)) return true;
                                 }
                             }
                         }
@@ -150,39 +155,52 @@ function render() {
     document.getElementById('turn-display').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
     document.getElementById('state-display').innerText = `— [${gameState.estado.toUpperCase()}]`;
 
-    // Organiza a mão visualmente (Naipe e Valor)
-    currentHand = (gameState.jogadores[playerID].mao || []).sort();
+    // Sincroniza a mão local com o banco de dados
+    let rawHand = gameState.jogadores[playerID].mao || [];
+    currentHand = [...rawHand].sort();
+    
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
 
-    const pairList = detectPairs(currentHand);
+    // Lógica do Brilho (Qualquer carta que tenha um par de valor brilha)
+    let valCounts = {};
+    currentHand.forEach(c => { 
+        let v = c.substring(1); 
+        valCounts[v] = (valCounts[v] || 0) + 1; 
+    });
 
     currentHand.forEach((card, index) => {
         const img = document.createElement('img');
         img.src = `Cards/Classic/${card}.png`;
         img.className = "card-img";
-        if (pairList.includes(card.substring(1))) {
-            img.style.border = "3px solid #f1c40f";
-            img.style.boxShadow = "0 0 15px #f1c40f";
+        
+        // Brilha se houver 2 ou mais cartas do mesmo número
+        if (valCounts[card.substring(1)] >= 2) {
+            img.style.border = "3px solid gold";
+            img.style.boxShadow = "0 0 15px gold";
         }
+        
         img.onclick = () => handleDiscard(index);
         playerHandEl.appendChild(img);
     });
 
-    // BOTÃO DE BATIDA
-    if (isMyTurn && gameState.estado === "descartar" && canWin(currentHand)) {
-        if (!document.getElementById('batida-btn')) {
+    // VERIFICAÇÃO DE BATIDA
+    const podeBater = canWin(currentHand);
+    const batidaBtnExistente = document.getElementById('batida-btn');
+
+    if (isMyTurn && gameState.estado === "descartar" && podeBater) {
+        if (!batidaBtnExistente) {
             let btn = document.createElement('button');
             btn.id = 'batida-btn';
             btn.innerText = "BATER!";
             btn.onclick = () => database.ref(`salas/${roomName}`).update({ vencedor: playerID });
             document.body.appendChild(btn);
         }
-    } else {
-        const b = document.getElementById('batida-btn'); if (b) b.remove();
+    } else if (batidaBtnExistente) {
+        batidaBtnExistente.remove();
     }
 
-    // CARTAS DO OPONENTE
+    // OPONENTE
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const oppEl = document.getElementById('opponent-hand');
@@ -194,20 +212,19 @@ function render() {
         oppEl.appendChild(img);
     }
 
-    // PILHA DE DESCARTE
-    const discardArr = gameState.descarte || [];
-    const discardImgEl = document.getElementById('discard-img');
-    if (discardArr.length > 0) {
-        const lastCard = discardArr[discardArr.length - 1];
-        discardImgEl.src = `Cards/Classic/${lastCard}.png`;
+    // DESCARTE
+    const discArr = gameState.descarte || [];
+    const discImg = document.getElementById('discard-img');
+    if (discArr.length > 0) {
+        discImg.src = `Cards/Classic/${discArr[discArr.length - 1]}.png`;
     } else {
-        discardImgEl.src = "Cards/Classic/Card-Back-01.png";
+        discImg.src = "Cards/Classic/Card-Back-01.png";
     }
 
     document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
 }
 
-// --- AÇÕES DO JOGO ---
+// --- AÇÕES ---
 
 document.getElementById('deck').onclick = () => buy('baralho');
 document.getElementById('discard-pile').onclick = () => buy('descarte');
@@ -225,13 +242,15 @@ function buy(type) {
     } else {
         if (newDiscard.length === 0) return;
         const card = newDiscard.pop();
-        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentHand, card] });
+        let currentMao = gameState.jogadores[playerID].mao || [];
+        database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentMao, card] });
         database.ref(`salas/${roomName}`).update({ descarte: newDiscard, estado: "descartar" });
     }
 }
 
 document.getElementById('keep-btn').onclick = () => {
-    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentHand, tempCard] });
+    let currentMao = gameState.jogadores[playerID].mao || [];
+    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...currentMao, tempCard] });
     database.ref(`salas/${roomName}`).update({ estado: "descartar" });
 };
 
@@ -241,9 +260,11 @@ document.getElementById('discard-instant-btn').onclick = () => {
 
 function handleDiscard(index) {
     if (gameState.turno !== playerID || gameState.estado !== "descartar") return;
-    let newHand = [...currentHand];
-    const removed = newHand.splice(index, 1)[0];
-    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: newHand });
+    // IMPORTANTE: Pegamos a mão exatamente como ela está renderizada (ordenada)
+    let myMaoRendered = [...(gameState.jogadores[playerID].mao || [])].sort();
+    const removed = myMaoRendered.splice(index, 1)[0];
+    
+    database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: myMaoRendered });
     finishTurn([...(gameState.descarte || []), removed]);
 }
 
