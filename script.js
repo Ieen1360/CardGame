@@ -35,7 +35,7 @@ document.getElementById('joinBtn').onclick = () => {
     });
 };
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO (9 CARTAS) ---
 function initRoom() {
     const suits = ['h', 'd', 'c', 's'];
     let deck = [];
@@ -69,7 +69,7 @@ function enterRoom() {
         gameState = snapshot.val();
         if (!gameState) return;
         if (gameState.vencedor) {
-            alert("FIM DE JOGO! Vencedor: " + gameState.vencedor);
+            alert("🏆 FIM DE JOGO! O vencedor é: " + gameState.vencedor.toUpperCase());
             location.reload();
             return;
         }
@@ -79,41 +79,40 @@ function enterRoom() {
             document.getElementById('waiting-lobby').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             render();
+        } else {
+            document.getElementById('count-number').innerText = p1Ok && p2Ok ? "2" : "1";
         }
     });
 }
 
-// --- LÓGICA DE DETECÇÃO ---
+// --- SISTEMA DE DETECÇÃO AUTOMÁTICA ---
 
-// Retorna uma lista de valores que aparecem mais de uma vez na mão
 function detectPairs(hand) {
     let counts = {};
-    let pairs = [];
+    let pairValues = [];
     hand.forEach(card => {
-        let val = card.substring(1); // Pega o número (ex: 01, 12)
+        let val = card.substring(1);
         counts[val] = (counts[val] || 0) + 1;
     });
-    for (let val in counts) {
-        if (counts[val] >= 2) pairs.push(val);
-    }
-    return pairs;
+    for (let v in counts) { if (counts[v] >= 2) pairValues.push(v); }
+    return pairValues;
 }
 
 function isValidGroup(cards) {
     if (cards.length !== 3) return false;
-    let parsed = cards.map(c => ({ suit: c[0], val: parseInt(c.substring(1)) }));
-    const sameVal = parsed.every(c => c.val === parsed[0].val);
-    const diffSuits = new Set(parsed.map(c => c.suit)).size === 3;
-    if (sameVal && diffSuits) return true;
-    const sameSuit = parsed.every(c => c.suit === parsed[0].suit);
-    const sortedVals = parsed.map(c => c.val).sort((a, b) => a - b);
-    return sameSuit && (sortedVals[1] === sortedVals[0] + 1 && sortedVals[2] === sortedVals[1] + 1);
+    let p = cards.map(c => ({ s: c[0], v: parseInt(c.substring(1)) }));
+    // Trinca
+    const isTrinca = p.every(c => c.v === p[0].v) && new Set(p.map(c => c.s)).size === 3;
+    if (isTrinca) return true;
+    // Sequência
+    const isSeq = p.every(c => c.s === p[0].s) && p.map(c => c.v).sort((a,b)=>a-b).every((v,i,a) => i===0 || v === a[i-1]+1);
+    return isSeq;
 }
 
 function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand].sort();
-    // Checagem básica por grupos de 3 ordenados
+    // Verifica se a mão fecha 3 grupos de 3 perfeitos
     return isValidGroup([h[0], h[1], h[2]]) && 
            isValidGroup([h[3], h[4], h[5]]) && 
            isValidGroup([h[6], h[7], h[8]]);
@@ -124,26 +123,24 @@ function canWin(hand) {
 function render() {
     const isMyTurn = gameState.turno === playerID;
     document.getElementById('turn-display').innerText = isMyTurn ? "SEU TURNO" : "TURNO DO OPONENTE";
+    document.getElementById('turn-display').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
     document.getElementById('state-display').innerText = `— [${gameState.estado.toUpperCase()}]`;
 
-    currentHand = gameState.jogadores[playerID].mao || [];
+    // Ordenação automática para facilitar a vida do jogador
+    currentHand = (gameState.jogadores[playerID].mao || []).sort();
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
 
-    // Detectar quais valores formam pares
-    const valuesInPairs = detectPairs(currentHand);
+    const pairs = detectPairs(currentHand);
 
     currentHand.forEach((card, index) => {
         const img = document.createElement('img');
         img.src = `Cards/Classic/${card}.png`;
         img.className = "card-img";
-        
-        // Se a carta faz parte de um par/trinca, adiciona um estilo especial
-        if (valuesInPairs.includes(card.substring(1))) {
-            img.style.border = "2px solid gold";
-            img.style.boxShadow = "0 0 10px gold";
+        if (pairs.includes(card.substring(1))) {
+            img.style.border = "3px solid #f1c40f";
+            img.style.boxShadow = "0 0 15px #f1c40f";
         }
-
         img.onclick = () => handleDiscard(index);
         playerHandEl.appendChild(img);
     });
@@ -154,24 +151,22 @@ function render() {
             let btn = document.createElement('button');
             btn.id = 'batida-btn';
             btn.innerText = "BATER!";
-            btn.style.cssText = "position:absolute; bottom:120px; background:gold; color:black; font-size:20px; padding:15px 30px; z-index:200; font-weight:bold; border-radius:10px; cursor:pointer;";
             btn.onclick = () => database.ref(`salas/${roomName}`).update({ vencedor: playerID });
             document.body.appendChild(btn);
         }
     } else {
-        const b = document.getElementById('batida-btn');
-        if (b) b.remove();
+        const b = document.getElementById('batida-btn'); if (b) b.remove();
     }
 
     const oppID = playerID === "p1" ? "p2" : "p1";
-    const oppHandCount = gameState.jogadores[oppID]?.mao?.length || 0;
-    const opponentHandEl = document.getElementById('opponent-hand');
-    opponentHandEl.innerHTML = "";
-    for (let i = 0; i < oppHandCount; i++) {
-        const img = document.createElement('img');
+    const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
+    const oppEl = document.getElementById('opponent-hand');
+    oppEl.innerHTML = "";
+    for (let i = 0; i < oppCount; i++) {
+        let img = document.createElement('img');
         img.src = "Cards/Classic/back.png";
         img.className = "card-img opp";
-        opponentHandEl.appendChild(img);
+        oppEl.appendChild(img);
     }
 
     const lastD = (gameState.descarte || ["back"])[gameState.descarte.length - 1];
@@ -188,6 +183,7 @@ function buy(type) {
     let newDeck = [...(gameState.baralho || [])];
     let newDiscard = [...(gameState.descarte || [])];
     if (type === 'baralho') {
+        if (newDeck.length === 0) return alert("Baralho vazio!");
         tempCard = newDeck.pop();
         document.getElementById('drawn-card-img').src = `Cards/Classic/${tempCard}.png`;
         database.ref(`salas/${roomName}`).update({ baralho: newDeck, estado: "decidir" });
