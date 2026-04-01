@@ -35,7 +35,7 @@ document.getElementById('joinBtn').onclick = () => {
     });
 };
 
-// --- INICIALIZAÇÃO (9 CARTAS) ---
+// --- INICIALIZAÇÃO ---
 function initRoom() {
     const suits = ['h', 'd', 'c', 's'];
     let deck = [];
@@ -69,7 +69,7 @@ function enterRoom() {
         gameState = snapshot.val();
         if (!gameState) return;
         if (gameState.vencedor) {
-            alert("🏆 FIM DE JOGO! O vencedor é: " + gameState.vencedor.toUpperCase());
+            alert("🏆 FIM DE JOGO! Vencedor: " + gameState.vencedor.toUpperCase());
             location.reload();
             return;
         }
@@ -79,14 +79,11 @@ function enterRoom() {
             document.getElementById('waiting-lobby').style.display = 'none';
             document.getElementById('game-container').style.display = 'flex';
             render();
-        } else {
-            document.getElementById('count-number').innerText = p1Ok && p2Ok ? "2" : "1";
         }
     });
 }
 
-// --- SISTEMA DE DETECÇÃO AUTOMÁTICA ---
-
+// --- DETECÇÃO AUTOMÁTICA ---
 function detectPairs(hand) {
     let counts = {};
     let pairValues = [];
@@ -101,10 +98,8 @@ function detectPairs(hand) {
 function isValidGroup(cards) {
     if (cards.length !== 3) return false;
     let p = cards.map(c => ({ s: c[0], v: parseInt(c.substring(1)) }));
-    // Trinca
     const isTrinca = p.every(c => c.v === p[0].v) && new Set(p.map(c => c.s)).size === 3;
     if (isTrinca) return true;
-    // Sequência
     const isSeq = p.every(c => c.s === p[0].s) && p.map(c => c.v).sort((a,b)=>a-b).every((v,i,a) => i===0 || v === a[i-1]+1);
     return isSeq;
 }
@@ -112,21 +107,16 @@ function isValidGroup(cards) {
 function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand].sort();
-    // Verifica se a mão fecha 3 grupos de 3 perfeitos
-    return isValidGroup([h[0], h[1], h[2]]) && 
-           isValidGroup([h[3], h[4], h[5]]) && 
-           isValidGroup([h[6], h[7], h[8]]);
+    return isValidGroup([h[0], h[1], h[2]]) && isValidGroup([h[3], h[4], h[5]]) && isValidGroup([h[6], h[7], h[8]]);
 }
 
-// --- RENDERIZAÇÃO ---
-
+// --- RENDER ---
 function render() {
     const isMyTurn = gameState.turno === playerID;
     document.getElementById('turn-display').innerText = isMyTurn ? "SEU TURNO" : "TURNO DO OPONENTE";
     document.getElementById('turn-display').style.color = isMyTurn ? "#2ecc71" : "#e74c3c";
     document.getElementById('state-display').innerText = `— [${gameState.estado.toUpperCase()}]`;
 
-    // Ordenação automática para facilitar a vida do jogador
     currentHand = (gameState.jogadores[playerID].mao || []).sort();
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
@@ -145,7 +135,6 @@ function render() {
         playerHandEl.appendChild(img);
     });
 
-    // Botão de Batida
     if (isMyTurn && gameState.estado === "descartar" && canWin(currentHand)) {
         if (!document.getElementById('batida-btn')) {
             let btn = document.createElement('button');
@@ -158,19 +147,24 @@ function render() {
         const b = document.getElementById('batida-btn'); if (b) b.remove();
     }
 
+    // CORREÇÃO DO VERSO NAS CARTAS DO OPONENTE
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const oppEl = document.getElementById('opponent-hand');
     oppEl.innerHTML = "";
     for (let i = 0; i < oppCount; i++) {
         let img = document.createElement('img');
-        img.src = "Cards/Classic/back.png";
+        img.src = "Cards/Classic/Card-Back-01.png"; 
         img.className = "card-img opp";
         oppEl.appendChild(img);
     }
 
-    const lastD = (gameState.descarte || ["back"])[gameState.descarte.length - 1];
-    document.getElementById('discard-img').src = `Cards/Classic/${lastD}.png`;
+    // CORREÇÃO DO VERSO NO DESCARTE
+    const lastD = (gameState.descarte && gameState.descarte.length > 0) 
+        ? `${gameState.descarte[gameState.descarte.length - 1]}.png` 
+        : "Card-Back-01.png"; 
+    document.getElementById('discard-img').src = `Cards/Classic/${lastD}`;
+
     document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
 }
 
