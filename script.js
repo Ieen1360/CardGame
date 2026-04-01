@@ -2,69 +2,56 @@ let database;
 let auth;
 let currentUser = null;
 
-// Configurações visuais
-const randomBackNum = Math.floor(Math.random() * 6) + 1;
-const cardBackPath = `Cards/Classic/Card-Back-0${randomBackNum}.png`;
+// Configurações visuais (cartas)
+const cardBackPath = `Cards/Classic/Card-Back-01.png`;
 
-// Variáveis de controle
+// Variáveis de controle de jogo
 let roomName = "";
 let playerID = ""; 
 let gameState = null;
 let currentHand = [];
 let tempCard = null;
 
-// FUNÇÃO DE INICIALIZAÇÃO SEGURA
-function initApp() {
-    // Tenta pegar o database do window (definido no seu firebase.js) ou do firebase global
-    database = window.db || firebase.database();
-    auth = firebase.auth();
+// Esta função garante que o Firebase já carregou antes de tentar usar o 'auth'
+function inicializarSistema() {
+    // Busca as instâncias criadas no firebase.js
+    database = window.db || (window.firebase ? firebase.database() : null);
+    auth = window.auth || (window.firebase ? firebase.auth() : null);
 
-    console.log("Firebase carregado com sucesso.");
+    if (!auth || !database) {
+        console.error("Firebase não encontrado! Verifique se o firebase.js está antes do script.js no HTML.");
+        return;
+    }
 
-    // Detecta se o usuário já está logado ou se logou agora
+    // Configura os botões de Login
+    document.getElementById('googleLoginBtn').onclick = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(e => console.error("Erro Google:", e));
+    };
+
+    document.getElementById('guestBtn').onclick = () => {
+        auth.signInAnonymously().catch(e => console.error("Erro Convidado:", e));
+    };
+
+    // Monitora o estado de login
     auth.onAuthStateChanged(user => {
         if (user) {
-            console.log("Usuário detectado:", user.uid);
-            handleAuth(user);
+            currentUser = user;
+            document.getElementById('auth-overlay').style.display = 'none';
+            document.getElementById('main-menu').style.display = 'block';
+            carregarDadosUsuario(user);
         } else {
-            console.log("Nenhum usuário logado.");
             document.getElementById('auth-overlay').style.display = 'flex';
             document.getElementById('main-menu').style.display = 'none';
         }
     });
-
-    // Atribui os eventos aos botões apenas após o carregamento
-    document.getElementById('googleLoginBtn').onclick = loginGoogle;
-    document.getElementById('guestBtn').onclick = loginGuest;
 }
 
-// Aguarda o carregamento total da página e dos scripts externos
-window.addEventListener('load', initApp);
+// Roda assim que a página carregar
+window.addEventListener('load', inicializarSistema);
 
-// --- FUNÇÕES DE LOGIN ---
-function loginGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => {
-        console.error("Erro no login Google:", error);
-        alert("Erro ao logar com Google. Verifique se ativou no console do Firebase.");
-    });
-}
-
-function loginGuest() {
-    auth.signInAnonymously().catch(error => {
-        console.error("Erro no login convidado:", error);
-        alert("Erro ao entrar como convidado. Verifique se ativou no console do Firebase.");
-    });
-}
-
-function handleAuth(user) {
-    currentUser = user;
-    document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('main-menu').style.display = 'block';
-    
+function carregarDadosUsuario(user) {
     const userRef = database.ref('users/' + user.uid);
-    
-    // Sincroniza dados do perfil
     userRef.on('value', snap => {
         let data = snap.val();
         if (!data) {
@@ -78,12 +65,10 @@ function handleAuth(user) {
         }
         updateProfileUI(data);
     });
-
     listenForInvites(user.uid);
 }
 
-// --- RESTO DO CÓDIGO (Igual ao anterior) ---
-
+// --- Funções de UI e Convites ---
 function updateProfileUI(data) {
     document.getElementById('user-name').innerText = data.name;
     document.getElementById('user-photo').src = data.photo;
@@ -105,7 +90,7 @@ function listenForInvites(myUid) {
     });
 }
 
-// Botões de ação do menu
+// --- BOTÕES DO MENU ---
 document.getElementById('addFriendBtn').onclick = () => {
     const friendUid = document.getElementById('addFriendInput').value.trim();
     if (!friendUid || friendUid === currentUser.uid) return alert("ID inválido!");
@@ -140,5 +125,5 @@ document.getElementById('joinBtn').onclick = () => {
     enterRoom();
 };
 
-// --- FUNÇÕES DE JOGO (Mantenha as mesmas: initRoom, enterRoom, render, buy, etc.) ---
-// ... (Copie as funções de lógica de cartas do script anterior aqui)
+// --- LOGICA DE JOGO (Mesmas funções que já funcionavam) ---
+// initRoom(), enterRoom(), render(), buy(), handleDiscard()...
