@@ -1,7 +1,7 @@
 let database;
 const mySessionId = Math.random().toString(36).substring(7);
 
-// Escolhe um verso de carta aleatório para esta sessão
+// Escolhe um verso de carta aleatório para esta sessão (01 a 06)
 const randomBackNum = Math.floor(Math.random() * 6) + 1;
 const cardBackPath = `Cards/Classic/Card-Back-0${randomBackNum}.png`;
 
@@ -65,13 +65,23 @@ function initRoom() {
 function enterRoom() {
     document.getElementById('lobby').style.display = 'none';
     document.getElementById('waiting-lobby').style.display = 'flex';
+    
+    const roomRef = database.ref(`salas/${roomName}`);
     const playerPath = `salas/${roomName}/jogadores/${playerID}`;
-    database.ref(playerPath).update({ sid: mySessionId, ativo: true });
-    database.ref(playerPath).onDisconnect().update({ sid: null, ativo: false });
 
-    database.ref(`salas/${roomName}`).on('value', snapshot => {
+    // CONFIGURAÇÃO DE AUTO-DELETE:
+    // Se este jogador desconectar, a sala INTEIRA é deletada
+    roomRef.onDisconnect().remove();
+
+    database.ref(playerPath).update({ sid: mySessionId, ativo: true });
+
+    roomRef.on('value', snapshot => {
         gameState = snapshot.val();
-        if (!gameState) return;
+        if (!gameState) {
+            // Se a sala sumiu do banco (porque o outro saiu), recarrega
+            location.reload();
+            return;
+        }
         
         if (gameState.vencedor) {
             showGameOver(gameState.vencedor);
@@ -99,33 +109,30 @@ function showGameOver(vencedorId) {
     const msg = (vencedorId === playerID) ? "VOCÊ VENCEU!" : "OPONENTE VENCEU!";
     const cor = (vencedorId === playerID) ? "#2ecc71" : "#e74c3c";
     overlay.innerHTML = `<h1 style="color:${cor}; font-size:60px; font-weight:bold;">${msg}</h1>`;
-    setTimeout(() => { location.reload(); }, 1500);
+    
+    // Deleta a sala após a vitória e reinicia
+    setTimeout(() => {
+        database.ref(`salas/${roomName}`).remove().then(() => {
+            location.reload();
+        });
+    }, 1500);
 }
 
-// --- REGRAS DE VITÓRIA CORRIGIDAS ---
-
+// --- REGRAS DE VITÓRIA ---
 function isValidGroup(cards) {
     if (cards.length !== 3) return false;
     let p = cards.map(c => ({ s: c[0], v: parseInt(c.substring(1)) }));
-    
-    // TRINCA: 3 cartas de mesmo valor
     const isTrinca = p.every(card => card.v === p[0].v);
     if (isTrinca) return true;
-
-    // SEQUÊNCIA: Mesmo naipe e valores seguidos
     const sorted = p.sort((a, b) => a.v - b.v);
     const sameSuit = p.every(card => card.s === p[0].s);
     const isSeq = (sorted[1].v === sorted[0].v + 1 && sorted[2].v === sorted[1].v + 1);
-    if (sameSuit && isSeq) return true;
-
-    return false;
+    return (sameSuit && isSeq);
 }
 
 function canWin(hand) {
     if (hand.length < 9) return false;
     let h = [...hand];
-
-    // Testa todas as combinações possíveis para formar 3 jogos
     for (let i = 0; i < h.length; i++) {
         for (let j = i + 1; j < h.length; j++) {
             for (let k = j + 1; k < h.length; k++) {
@@ -149,7 +156,6 @@ function canWin(hand) {
 }
 
 // --- RENDERIZAÇÃO ---
-
 function render() {
     const isMyTurn = gameState.turno === playerID;
     document.getElementById('turn-display').innerText = isMyTurn ? "SEU TURNO" : "TURNO DO OPONENTE";
@@ -162,7 +168,6 @@ function render() {
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
 
-    // Brilho dos Pares (mesmo valor)
     let valCounts = {};
     currentHand.forEach(c => { let v = c.substring(1); valCounts[v] = (valCounts[v] || 0) + 1; });
 
@@ -178,15 +183,13 @@ function render() {
         playerHandEl.appendChild(img);
     });
 
-    // SISTEMA DE BATIDA (Botão)
     const batidaBtnExistente = document.getElementById('batida-btn');
-    // Verifica vitória com as 9 cartas atuais
     if (isMyTurn && gameState.estado === "descartar" && canWin(currentHand)) {
         if (!batidaBtnExistente) {
             let btn = document.createElement('button');
             btn.id = 'batida-btn';
             btn.innerText = "BATER!";
-            btn.style.cssText = "position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:15px 40px; background:gold; color:black; font-weight:bold; font-size:24px; border:none; border-radius:10px; cursor:pointer; box-shadow: 0 0 20px gold;";
+            btn.style.cssText = "position:fixed; bottom:30px; left:50%; transform:translateX(-50%); padding:20px 60px; background:linear-gradient(to bottom, #f1c40f, #f39c12); color:white; font-weight:bold; font-size:28px; border:none; border-radius:15px; cursor:pointer; box-shadow: 0 0 30px rgba(241, 196, 15, 0.6); z-index:100;";
             btn.onclick = () => database.ref(`salas/${roomName}`).update({ vencedor: playerID });
             document.body.appendChild(btn);
         }
@@ -194,18 +197,14 @@ function render() {
         batidaBtnExistente.remove();
     }
 
-    // ATUALIZA VISUAL DO BARALHO E DESCARTE
-    document.querySelector('#deck img').src = cardBackPath; // Aplica o back aleatório
-    
+    // VISUAL DOS BARALHOS
+    const deckImg = document.querySelector('#deck img');
+    if(deckImg) deckImg.src = cardBackPath;
+
     const discArr = gameState.descarte || [];
     const discImg = document.getElementById('discard-img');
-    if (discArr.length > 0) {
-        discImg.src = `Cards/Classic/${discArr[discArr.length - 1]}.png`;
-    } else {
-        discImg.src = cardBackPath;
-    }
+    if (discImg) discImg.src = discArr.length > 0 ? `Cards/Classic/${discArr[discArr.length - 1]}.png` : cardBackPath;
 
-    // ATUALIZA OPONENTE COM BACK ALEATÓRIO
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const oppEl = document.getElementById('opponent-hand');
@@ -221,7 +220,6 @@ function render() {
 }
 
 // --- AÇÕES ---
-
 document.getElementById('deck').onclick = () => buy('baralho');
 document.getElementById('discard-pile').onclick = () => buy('descarte');
 
@@ -240,8 +238,7 @@ function buy(type) {
         const card = newDiscard.pop();
         let maoAtual = gameState.jogadores[playerID].mao || [];
         database.ref(`salas/${roomName}/jogadores/${playerID}`).update({ mao: [...maoAtual, card] });
-        database.ref(`salas/${roomName}`).update({ estado: "descartar" });
-        database.ref(`salas/${roomName}`).update({ descarte: newDiscard });
+        database.ref(`salas/${roomName}`).update({ descarte: newDiscard, estado: "descartar" });
     }
 }
 
@@ -265,8 +262,7 @@ function handleDiscard(index) {
 
 function finishTurn(newDiscardPile) {
     database.ref(`salas/${roomName}`).update({
-        descarte: newDiscardPile, 
-        estado: "comprar",
+        descarte: newDiscardPile, estado: "comprar",
         turno: playerID === "p1" ? "p2" : "p1"
     });
 }
