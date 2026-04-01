@@ -9,8 +9,10 @@ const firebaseConfig = {
 };
 
 // Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
-// Torna globais para o script.js acessar
+// Torna os serviços globais para o script.js
 window.db = firebase.database();
-window.auth = firebase.auth(); // ADICIONE ESTA LINHA
+window.auth = firebase.auth(); // <-- ESSA LINHA É VITAL
