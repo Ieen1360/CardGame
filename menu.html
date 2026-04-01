@@ -11,43 +11,43 @@
 </head>
 <body>
     <div class="top-bar">
-        <div id="user-profile">
-            <span id="user-name">Carregando...</span>
-            <span id="user-coins">💰 0</span>
+        <div id="user-info">
+            <span id="display-name">...</span> | <span id="coins-count">💰 0</span>
         </div>
-        <button onclick="auth.signOut().then(()=>window.location.href='index.html')">Sair</button>
+        <button onclick="auth.signOut().then(()=>window.location.href='index.html')" style="background:#e74c3c">Sair</button>
     </div>
 
     <div class="central-card">
-        <h2>Jogar Pife</h2>
-        <input type="text" id="roomInput" placeholder="Nome da sala">
-        <div class="row">
-            <button id="createBtn" style="background:#2980b9;">Criar Sala</button>
-            <button id="joinBtn" style="background:#27ae60;">Entrar</button>
+        <h2>Salas</h2>
+        <input type="text" id="roomInput" placeholder="Nome da Sala">
+        <div style="display:flex; gap:10px;">
+            <button id="createBtn" style="flex:1; background:#2980b9;">Criar</button>
+            <button id="joinBtn" style="flex:1; background:#27ae60;">Entrar</button>
         </div>
-        <hr>
-        <h3>Amigos Online</h3>
-        <div id="friends-list">Nenhum amigo online</div>
     </div>
 
     <script>
-        auth.onAuthStateChanged(user => {
-            if (!user) window.location.href = "index.html";
-            document.getElementById('user-name').innerText = user.displayName || "Convidado";
-            // Lógica de moedas aqui
-            database.ref(`users/${user.uid}/coins`).on('value', s => {
-                document.getElementById('user-coins').innerText = "💰 " + (s.val() || 0);
+        window.onload = () => {
+            auth.onAuthStateChanged(user => {
+                if (!user) { window.location.href = "index.html"; return; }
+                
+                document.getElementById('display-name').innerText = user.displayName || "Convidado";
+                
+                // Escuta moedas
+                database.ref(`users/${user.uid}/coins`).on('value', snap => {
+                    document.getElementById('coins-count').innerText = "💰 " + (snap.val() || 0);
+                });
             });
-        });
 
-        // Lógica dos botões de sala (redireciona para jogo.html?sala=NOME)
-        document.getElementById('createBtn').onclick = () => {
-            const sala = document.getElementById('roomInput').value;
-            if(sala) window.location.href = `jogo.html?sala=${sala}&role=p1`;
-        };
-        document.getElementById('joinBtn').onclick = () => {
-            const sala = document.getElementById('roomInput').value;
-            if(sala) window.location.href = `jogo.html?sala=${sala}&role=p2`;
+            document.getElementById('createBtn').onclick = () => {
+                const r = document.getElementById('roomInput').value.trim();
+                if(r) window.location.href = `jogo.html?sala=${r.toLowerCase()}&role=p1`;
+            };
+
+            document.getElementById('joinBtn').onclick = () => {
+                const r = document.getElementById('roomInput').value.trim();
+                if(r) window.location.href = `jogo.html?sala=${r.toLowerCase()}&role=p2`;
+            };
         };
     </script>
 </body>
