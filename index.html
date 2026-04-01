@@ -5,44 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pife Online - 9 Cartas</title>
     <link rel="stylesheet" href="style.css">
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    
     <script src="firebase.js"></script>
 </head>
 <body>
-
-    <div id="auth-overlay">
-        <div id="login-box">
-            <h1>Pife Royale</h1>
-            <p>Entre para salvar suas moedas</p>
-            <button id="googleLoginBtn" class="login-btn google">Entrar com Google</button>
-            <button id="guestBtn" class="login-btn guest">Jogar como Convidado</button>
-        </div>
+    <div id="auth-overlay" style="position:fixed; inset:0; background:#1a2a3a; z-index:10000; display:flex; justify-content:center; align-items:center; flex-direction:column;">
+        <h1 style="color:white; margin-bottom:20px;">Pife Online</h1>
+        <button id="googleLoginBtn" style="background:#db4437; margin-bottom:10px; width:200px;">Login com Google</button>
+        <button id="guestBtn" style="background:#7f8c8d; width:200px;">Jogar como Convidado</button>
     </div>
 
     <div id="lobby" style="display: none;">
-        <div class="user-info">
-            <img id="user-photo" src="" style="width: 50px; border-radius: 50%; display: none;">
-            <span id="user-name"></span> | <span id="user-coins-display">💰 0</span>
-        </div>
-        <p>Seu ID: <small id="my-uid-display"></small></p>
-        
+        <h1>Pife Online</h1>
+        <div id="user-info" style="margin-bottom: 15px; font-size: 14px; color: #aaa;"></div>
         <input type="text" id="roomInput" placeholder="Nome da Sala">
-        <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: center;">
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
             <button id="createBtn" style="background-color: #2980b9;">Criar Sala</button>
             <button id="joinBtn">Entrar na Sala</button>
         </div>
-        <hr>
-        <input type="text" id="addFriendInput" placeholder="ID do Amigo">
-        <button id="addFriendBtn">Desafiar Amigo</button>
     </div>
 
     <div id="waiting-lobby" style="display: none;">
         <div class="waiting-content">
             <h2>Aguardando Jogador...</h2>
+            <div class="player-count">Jogadores: <span id="count-number">1</span> / 2</div>
             <div class="loader"></div>
         </div>
     </div>
@@ -78,7 +66,6 @@
             </div>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
