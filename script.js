@@ -83,7 +83,7 @@ function enterRoom() {
     });
 }
 
-// --- DETECÇÃO AUTOMÁTICA ---
+// --- DETECÇÃO ---
 function detectPairs(hand) {
     let counts = {};
     let pairValues = [];
@@ -120,7 +120,6 @@ function render() {
     currentHand = (gameState.jogadores[playerID].mao || []).sort();
     const playerHandEl = document.getElementById('player-hand');
     playerHandEl.innerHTML = "";
-
     const pairs = detectPairs(currentHand);
 
     currentHand.forEach((card, index) => {
@@ -147,7 +146,7 @@ function render() {
         const b = document.getElementById('batida-btn'); if (b) b.remove();
     }
 
-    // CORREÇÃO DO VERSO NAS CARTAS DO OPONENTE
+    // COSTAS DAS CARTAS DO OPONENTE
     const oppID = playerID === "p1" ? "p2" : "p1";
     const oppCount = gameState.jogadores[oppID]?.mao?.length || 0;
     const oppEl = document.getElementById('opponent-hand');
@@ -159,11 +158,15 @@ function render() {
         oppEl.appendChild(img);
     }
 
-    // CORREÇÃO DO VERSO NO DESCARTE
-    const lastD = (gameState.descarte && gameState.descarte.length > 0) 
-        ? `${gameState.descarte[gameState.descarte.length - 1]}.png` 
-        : "Card-Back-01.png"; 
-    document.getElementById('discard-img').src = `Cards/Classic/${lastD}`;
+    // COSTAS DO DESCARTE (Se estiver vazio ou recém-criado)
+    const discardArr = gameState.descarte || [];
+    const discardImgEl = document.getElementById('discard-img');
+    if (discardArr.length > 0) {
+        const lastCard = discardArr[discardArr.length - 1];
+        discardImgEl.src = `Cards/Classic/${lastCard}.png`;
+    } else {
+        discardImgEl.src = "Cards/Classic/Card-Back-01.png";
+    }
 
     document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
 }
