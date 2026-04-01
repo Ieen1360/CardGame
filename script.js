@@ -2,7 +2,7 @@ let database;
 let auth;
 let currentUser = null;
 
-// Configurações visuais (cartas)
+// Configurações visuais
 const cardBackPath = `Cards/Classic/Card-Back-01.png`;
 
 // Variáveis de controle de jogo
@@ -12,45 +12,41 @@ let gameState = null;
 let currentHand = [];
 let tempCard = null;
 
-// Esta função garante que o Firebase já carregou antes de tentar usar o 'auth'
-function inicializarSistema() {
-    // Busca as instâncias criadas no firebase.js
-    database = window.db || (window.firebase ? firebase.database() : null);
-    auth = window.auth || (window.firebase ? firebase.auth() : null);
+// Inicialização disparada pelo navegador
+window.addEventListener('load', () => {
+    database = window.db;
+    auth = window.auth;
 
-    if (!auth || !database) {
-        console.error("Firebase não encontrado! Verifique se o firebase.js está antes do script.js no HTML.");
+    if (!auth) {
+        console.error("Erro: 'auth' não foi definido no firebase.js!");
         return;
     }
 
-    // Configura os botões de Login
-    document.getElementById('googleLoginBtn').onclick = () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(e => console.error("Erro Google:", e));
-    };
-
-    document.getElementById('guestBtn').onclick = () => {
-        auth.signInAnonymously().catch(e => console.error("Erro Convidado:", e));
-    };
-
-    // Monitora o estado de login
+    // Gerencia o estado de Login
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
             document.getElementById('auth-overlay').style.display = 'none';
             document.getElementById('main-menu').style.display = 'block';
-            carregarDadosUsuario(user);
+            setupUserAccount(user);
         } else {
             document.getElementById('auth-overlay').style.display = 'flex';
             document.getElementById('main-menu').style.display = 'none';
         }
     });
-}
 
-// Roda assim que a página carregar
-window.addEventListener('load', inicializarSistema);
+    // Configura cliques de login
+    document.getElementById('googleLoginBtn').onclick = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(e => alert("Erro Google: " + e.message));
+    };
 
-function carregarDadosUsuario(user) {
+    document.getElementById('guestBtn').onclick = () => {
+        auth.signInAnonymously().catch(e => alert("Erro Convidado: " + e.message));
+    };
+});
+
+function setupUserAccount(user) {
     const userRef = database.ref('users/' + user.uid);
     userRef.on('value', snap => {
         let data = snap.val();
@@ -63,41 +59,33 @@ function carregarDadosUsuario(user) {
             };
             userRef.set(data);
         }
-        updateProfileUI(data);
+        document.getElementById('user-name').innerText = data.name;
+        document.getElementById('user-photo').src = data.photo;
+        document.getElementById('user-coins-display').innerText = "💰 " + data.coins;
+        document.getElementById('my-uid-display').innerText = data.uid;
     });
-    listenForInvites(user.uid);
-}
 
-// --- Funções de UI e Convites ---
-function updateProfileUI(data) {
-    document.getElementById('user-name').innerText = data.name;
-    document.getElementById('user-photo').src = data.photo;
-    document.getElementById('user-coins-display').innerText = "💰 " + data.coins;
-    document.getElementById('my-uid-display').innerText = data.uid;
-}
-
-function listenForInvites(myUid) {
-    database.ref(`invites/${myUid}`).on('value', snap => {
+    // Escuta convites de duelo
+    database.ref(`invites/${user.uid}`).on('value', snap => {
         const invite = snap.val();
         if (invite) {
-            if (confirm(`Desafio de ${invite.fromName}! Aceitar duelo?`)) {
+            if (confirm(`Desafio de ${invite.fromName}! Aceitar?`)) {
                 roomName = invite.room;
                 playerID = "p2";
-                database.ref(`invites/${myUid}`).remove();
+                database.ref(`invites/${user.uid}`).remove();
                 enterRoom();
             }
         }
     });
 }
 
-// --- BOTÕES DO MENU ---
+// --- LOGICA DE DUELO ---
 document.getElementById('addFriendBtn').onclick = () => {
     const friendUid = document.getElementById('addFriendInput').value.trim();
-    if (!friendUid || friendUid === currentUser.uid) return alert("ID inválido!");
+    if (!friendUid || friendUid === currentUser.uid) return alert("ID inválido");
     
     const inviteData = {
         fromName: currentUser.displayName || "Convidado",
-        fromUid: currentUser.uid,
         room: "duelo-" + Math.random().toString(36).substring(7)
     };
     
@@ -109,9 +97,10 @@ document.getElementById('addFriendBtn').onclick = () => {
     });
 };
 
+// --- LOGICA DE SALA ---
 document.getElementById('createBtn').onclick = () => {
     const input = document.getElementById('roomInput').value.trim();
-    if (!input) return alert("Digite o nome da sala!");
+    if (!input) return alert("Nome da sala!");
     roomName = input.toLowerCase().replace(/\s+/g, '-');
     playerID = "p1";
     initRoom();
@@ -119,11 +108,129 @@ document.getElementById('createBtn').onclick = () => {
 
 document.getElementById('joinBtn').onclick = () => {
     const input = document.getElementById('roomInput').value.trim();
-    if (!input) return alert("Digite o nome da sala!");
+    if (!input) return alert("Nome da sala!");
     roomName = input.toLowerCase().replace(/\s+/g, '-');
     playerID = "p2";
     enterRoom();
 };
 
-// --- LOGICA DE JOGO (Mesmas funções que já funcionavam) ---
-// initRoom(), enterRoom(), render(), buy(), handleDiscard()...
+function initRoom() {
+    const suits = ['h', 'd', 'c', 's'];
+    let deck = [];
+    for (let s of suits) {
+        for (let i = 1; i <= 13; i++) deck.push(s + i.toString().padStart(2, '0'));
+    }
+    deck = deck.sort(() => Math.random() - 0.5);
+    
+    database.ref('salas/' + roomName).set({
+        turno: "p1", estado: "comprar", baralho: deck, descarte: [deck.pop()], vencedor: null,
+        jogadores: { 
+            p1: { uid: currentUser.uid, mao: deck.splice(0, 9), ativo: true }, 
+            p2: { uid: "", mao: deck.splice(0, 9), ativo: false } 
+        }
+    }).then(enterRoom);
+}
+
+function enterRoom() {
+    const roomRef = database.ref(`salas/${roomName}`);
+    if (playerID === "p2") {
+        roomRef.child('jogadores/p2').update({ uid: currentUser.uid, ativo: true });
+    }
+
+    roomRef.on('value', snapshot => {
+        gameState = snapshot.val();
+        if (!gameState) return;
+        
+        if (gameState.vencedor) {
+            if (playerID === gameState.vencedor) {
+                database.ref(`users/${currentUser.uid}/coins`).transaction(c => (c || 0) + 50);
+                alert("VOCÊ VENCEU! +50 Moedas");
+            } else {
+                alert("OPONENTE VENCEU!");
+            }
+            database.ref(`salas/${roomName}`).remove().then(() => location.reload());
+            return;
+        }
+
+        if (gameState.jogadores.p1.ativo && gameState.jogadores.p2.ativo) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            render();
+        }
+    });
+}
+
+// --- FUNÇÕES DE CARTAS (O CORAÇÃO DO JOGO) ---
+function render() {
+    const isMyTurn = gameState.turno === playerID;
+    document.getElementById('turn-display').innerText = isMyTurn ? "SEU TURNO" : "TURNO DO OPONENTE";
+    document.getElementById('state-display').innerText = `[${gameState.estado}]`;
+
+    const playerHandEl = document.getElementById('player-hand');
+    playerHandEl.innerHTML = "";
+    currentHand = (gameState.jogadores[playerID].mao || []).sort();
+
+    currentHand.forEach((card, index) => {
+        const img = document.createElement('img');
+        img.src = `Cards/Classic/${card}.png`;
+        img.className = "card-img";
+        img.onclick = () => {
+            if (isMyTurn && gameState.estado === "descartar") {
+                let m = [...currentHand];
+                const removed = m.splice(index, 1)[0];
+                database.ref(`salas/${roomName}`).update({
+                    [`jogadores/${playerID}/mao`]: m,
+                    descarte: [...(gameState.descarte || []), removed],
+                    estado: "comprar",
+                    turno: playerID === "p1" ? "p2" : "p1"
+                });
+            }
+        };
+        playerHandEl.appendChild(img);
+    });
+
+    // Atualiza Baralho e Descarte
+    const disc = gameState.descarte || [];
+    document.getElementById('discard-img').src = disc.length > 0 ? `Cards/Classic/${disc[disc.length-1]}.png` : cardBackPath;
+    document.getElementById('deck-img').src = cardBackPath;
+
+    // Modal de compra
+    document.getElementById('decision-modal').style.display = (isMyTurn && gameState.estado === "decidir") ? "flex" : "none";
+}
+
+document.getElementById('deck').onclick = () => {
+    if (gameState.turno === playerID && gameState.estado === "comprar") {
+        let b = [...gameState.baralho];
+        tempCard = b.pop();
+        document.getElementById('drawn-card-img').src = `Cards/Classic/${tempCard}.png`;
+        database.ref(`salas/${roomName}`).update({ baralho: b, estado: "decidir" });
+    }
+};
+
+document.getElementById('discard-pile').onclick = () => {
+    if (gameState.turno === playerID && gameState.estado === "comprar") {
+        let d = [...gameState.descarte];
+        if (d.length === 0) return;
+        const card = d.pop();
+        database.ref(`salas/${roomName}`).update({
+            [`jogadores/${playerID}/mao`]: [...currentHand, card],
+            descarte: d,
+            estado: "descartar"
+        });
+    }
+};
+
+document.getElementById('keep-btn').onclick = () => {
+    database.ref(`salas/${roomName}`).update({
+        [`jogadores/${playerID}/mao`]: [...currentHand, tempCard],
+        estado: "descartar"
+    });
+};
+
+document.getElementById('discard-instant-btn').onclick = () => {
+    database.ref(`salas/${roomName}`).update({
+        descarte: [...(gameState.descarte || []), tempCard],
+        estado: "comprar",
+        turno: playerID === "p1" ? "p2" : "p1"
+    });
+};
