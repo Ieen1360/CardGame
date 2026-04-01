@@ -12,8 +12,5 @@ if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Força as variáveis para o window para as outras páginas acharem
 window.auth = firebase.auth();
 window.database = firebase.database();
-
-console.log("Firebase carregado com sucesso!");
