@@ -1,1 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Pife Online - Menu</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase.js"></script>
+</head>
+<body>
+    <div class="top-bar">
+        <div id="user-profile">
+            <span id="user-name">Carregando...</span>
+            <span id="user-coins">💰 0</span>
+        </div>
+        <button onclick="auth.signOut().then(()=>window.location.href='index.html')">Sair</button>
+    </div>
 
+    <div class="central-card">
+        <h2>Jogar Pife</h2>
+        <input type="text" id="roomInput" placeholder="Nome da sala">
+        <div class="row">
+            <button id="createBtn" style="background:#2980b9;">Criar Sala</button>
+            <button id="joinBtn" style="background:#27ae60;">Entrar</button>
+        </div>
+        <hr>
+        <h3>Amigos Online</h3>
+        <div id="friends-list">Nenhum amigo online</div>
+    </div>
+
+    <script>
+        auth.onAuthStateChanged(user => {
+            if (!user) window.location.href = "index.html";
+            document.getElementById('user-name').innerText = user.displayName || "Convidado";
+            // Lógica de moedas aqui
+            database.ref(`users/${user.uid}/coins`).on('value', s => {
+                document.getElementById('user-coins').innerText = "💰 " + (s.val() || 0);
+            });
+        });
+
+        // Lógica dos botões de sala (redireciona para jogo.html?sala=NOME)
+        document.getElementById('createBtn').onclick = () => {
+            const sala = document.getElementById('roomInput').value;
+            if(sala) window.location.href = `jogo.html?sala=${sala}&role=p1`;
+        };
+        document.getElementById('joinBtn').onclick = () => {
+            const sala = document.getElementById('roomInput').value;
+            if(sala) window.location.href = `jogo.html?sala=${sala}&role=p2`;
+        };
+    </script>
+</body>
+</html>
