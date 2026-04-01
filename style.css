@@ -1,55 +1,18 @@
-body {
-    margin: 0; background: #1a472a; color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-}
+body { margin: 0; background: #1a472a; color: white; font-family: sans-serif; text-align: center; }
+#lobby { padding: 100px; }
+input { padding: 10px; border-radius: 5px; border: none; }
+button { padding: 10px 20px; cursor: pointer; background: #f1c40f; border: none; font-weight: bold; margin: 5px; }
 
-/* Placar */
-#scoreboard {
-    display: flex; justify-content: space-between; align-items: center;
-    background: rgba(0,0,0,0.5); padding: 10px 30px; height: 60px;
-}
-.score-item { font-size: 20px; font-weight: bold; color: gold; }
-#status-area { text-align: center; }
-#turn-display { font-size: 22px; font-weight: bold; }
-#state-display { font-size: 12px; opacity: 0.8; }
+#scoreboard { display: flex; justify-content: space-around; background: rgba(0,0,0,0.4); padding: 15px; font-size: 20px; }
+#table { height: 80vh; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+.hand { display: flex; justify-content: center; gap: 5px; height: 130px; }
+.card-img { width: 90px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+.card-img:hover { transform: translateY(-10px); }
+.glow { border: 3px solid gold; box-shadow: 0 0 10px gold; }
 
-/* Mesa */
-#table {
-    display: flex; flex-direction: column; height: calc(100vh - 80px);
-    justify-content: space-between; padding: 20px;
-}
+.center-area { display: flex; justify-content: center; align-items: center; gap: 30px; position: relative; }
+.slot img { width: 100px; border-radius: 5px; }
+#history-box { position: absolute; left: 0; font-size: 12px; background: rgba(0,0,0,0.2); padding: 10px; width: 100px; }
 
-.hand { display: flex; justify-content: center; gap: -30px; height: 150px; }
-.card-img { 
-    width: 100px; transition: transform 0.2s; cursor: pointer;
-    border-radius: 8px;
-}
-.card-img:hover { transform: translateY(-20px); }
-.glow { border: 3px solid gold; box-shadow: 0 0 15px gold; }
-
-.center-area { display: flex; justify-content: center; align-items: center; gap: 40px; position: relative; }
-.slot { text-align: center; cursor: pointer; }
-.slot img { width: 110px; border-radius: 8px; }
-
-/* Histórico Lateral */
-#history-panel {
-    position: absolute; left: 20px; background: rgba(0,0,0,0.3);
-    padding: 10px; border-radius: 10px; width: 120px; height: 150px;
-}
-#history-list { font-size: 14px; display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-
-/* Modais e Overlays */
-.modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-    display: flex; justify-content: center; align-items: center; z-index: 1000;
-}
-.modal-content { background: #2c3e50; padding: 30px; border-radius: 20px; text-align: center; }
-.modal-content img { width: 120px; margin: 20px; }
-.modal-btns { display: flex; gap: 10px; }
-button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
-
-.victory-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
-    display: flex; justify-content: center; align-items: center; z-index: 2000;
-}
+.modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; }
+.modal-content { background: #2c3e50; padding: 20px; border-radius: 10px; }
