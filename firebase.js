@@ -1,4 +1,3 @@
-// Configurações do seu projeto
 const firebaseConfig = {
     apiKey: "AIzaSyAMdBDtEDuV23aJelAMlslqEoikZ6VXMIU",
     authDomain: "cardgame-e2501.firebaseapp.com",
@@ -9,11 +8,11 @@ const firebaseConfig = {
     appId: "1:45522667511:web:55242fdc999ff84fa290f2"
 };
 
-// Inicializa o Firebase apenas se não houver um app rodando
+// Inicializa se não existir
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Exporta para o escopo global (isso resolve o "auth is not defined")
+// Expõe para todas as abas e scripts
 window.auth = firebase.auth();
 window.database = firebase.database();
