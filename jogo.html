@@ -1,1 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pife Online - Partida</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="firebase.js"></script>
+</head>
+<body style="background: #1a2a3a;">
+    <div id="game-container">
+        <div id="status-bar">
+            <span id="turn-display">Conectando...</span>
+            <span id="state-display"></span>
+            <button onclick="window.location.href='menu.html'" style="background:#e74c3c; padding:5px 10px; font-size:12px;">Sair</button>
+        </div>
 
+        <div id="table">
+            <div id="opponent-hand" class="hand"></div>
+
+            <div class="center-pile">
+                <div id="deck" class="card-slot">
+                    <img src="Cards/Classic/Card-Back-01.png" alt="Baralho">
+                    <div class="label">BARALHO</div>
+                </div>
+                <div id="discard-pile" class="card-slot">
+                    <img src="Cards/Classic/Card-Back-01.png" id="discard-img" alt="Descarte">
+                    <div class="label">DESCARTE</div>
+                </div>
+            </div>
+
+            <div id="player-hand" class="hand"></div>
+        </div>
+
+        <div id="decision-modal" class="modal">
+            <div class="modal-content">
+                <h3>Você comprou:</h3>
+                <img id="drawn-card-img" src="" alt="Carta">
+                <div class="actions" style="display:flex; gap:10px; justify-content:center;">
+                    <button id="keep-btn" style="background:#27ae60;">Ficar</button>
+                    <button id="discard-instant-btn" style="background:#e67e22;">Descartar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="waiting-overlay" style="position:fixed; inset:0; background:rgba(26,42,58,0.9); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:999;">
+        <h2>Aguardando oponente...</h2>
+        <div class="loader"></div>
+        <p id="room-name-display"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
