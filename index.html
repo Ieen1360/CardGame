@@ -2,75 +2,45 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pife Online Pro</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
 </head>
 <body>
-
     <div id="lobby">
         <h1>PIFE ONLINE</h1>
-        <div class="login-box">
-            <input type="text" id="roomInput" placeholder="Nome da sala...">
-            <div class="btns">
-                <button id="createBtn">Criar Sala</button>
-                <button id="joinBtn">Entrar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="waiting-lobby" style="display: none;">
-        <h2>Aguardando oponente...</h2>
-        <div class="loader"></div>
+        <input type="text" id="roomInput" placeholder="Nome da sala...">
+        <button id="createBtn">CRIAR PARTIDA</button>
+        <button id="joinBtn">ENTRAR NA PARTIDA</button>
     </div>
 
     <div id="game-container" style="display: none;">
         <div id="scoreboard">
-            <div class="score-item">VOCÊ: <span id="my-score">0</span></div>
-            <div id="status-area">
-                <div id="turn-display">A CARREGAR...</div>
-                <div id="state-display"></div>
-            </div>
-            <div class="score-item">OPONENTE: <span id="opp-score">0</span></div>
+            <div class="score">VOCÊ: <span id="my-score">0</span></div>
+            <div id="turn-display">TURNO</div>
+            <div class="score">OPONENTE: <span id="opp-score">0</span></div>
         </div>
 
         <div id="table">
             <div id="opponent-hand" class="hand"></div>
-
             <div class="center-area">
-                <div id="history-panel">
-                    <small>HISTÓRICO:</small>
-                    <div id="history-list"></div>
-                </div>
-
-                <div id="deck" class="slot">
-                    <img src="" id="deck-img">
-                    <span>BARALHO</span>
-                </div>
-
-                <div id="discard-pile" class="slot">
-                    <img src="" id="discard-img">
-                    <span>DESCARTE</span>
-                </div>
+                <div id="deck" class="slot"><img src="" id="deck-img"></div>
+                <div id="discard-pile" class="slot"><img src="" id="discard-img"></div>
+                <div id="history-box">SAÍRAM: <div id="history-list"></div></div>
             </div>
-
             <div id="player-hand" class="hand"></div>
         </div>
     </div>
 
-    <div id="decision-modal" class="modal" style="display: none;">
+    <div id="decision-modal" class="modal" style="display:none;">
         <div class="modal-content">
-            <h3>Compraste:</h3>
+            <h3>COMPROU:</h3>
             <img id="drawn-card-img" src="">
-            <div class="modal-btns">
-                <button id="keep-btn">FICAR</button>
-                <button id="discard-instant-btn">LARGAR</button>
-            </div>
+            <button id="keep-btn">FICAR</button>
+            <button id="discard-instant-btn">LARGAR</button>
         </div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
