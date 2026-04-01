@@ -1,35 +1,35 @@
-// CONFIGURAÇÃO DO FIREBASE (Coloque seus dados aqui)
-const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_PROJETO.firebaseapp.com",
-    databaseURL: "https://SEU_PROJETO.firebaseio.com",
-    projectId: "SEU_PROJETO",
-    storageBucket: "SEU_PROJETO.appspot.com",
-    messagingSenderId: "ID",
-    appId: "APP_ID"
-};
-
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const auth = firebase.auth();
-const provider = new firebase.auth.GoogleAuthProvider();
-
+let database;
+let auth;
 let currentUser = null;
-let roomName = "";
-let playerID = ""; 
-let gameState = null;
-let currentHand = [];
-let tempCard = null;
 
-const backImg = `Cards/Classic/Card-Back-01.png`;
+// Verso de carta aleatório
+const randomBackNum = Math.floor(Math.random() * 6) + 1;
+const cardBackPath = `Cards/Classic/Card-Back-0${randomBackNum}.png`;
+
+// Inicializa o Firebase usando o que já está no firebase.js
+window.onload = () => { 
+    database = window.db || firebase.database(); 
+    auth = firebase.auth();
+
+    // Listener de Autenticação: detecta se o usuário logou
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            handleAuth(user);
+        } else {
+            document.getElementById('auth-overlay').style.display = 'flex';
+            document.getElementById('main-menu').style.display = 'none';
+        }
+    });
+};
 
 // --- SISTEMA DE LOGIN ---
 document.getElementById('googleLoginBtn').onclick = () => {
-    auth.signInWithPopup(provider).then(res => handleAuth(res.user));
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider);
 };
 
 document.getElementById('guestBtn').onclick = () => {
-    auth.signInAnonymously().then(res => handleAuth(res.user));
+    auth.signInAnonymously();
 };
 
 function handleAuth(user) {
@@ -37,8 +37,9 @@ function handleAuth(user) {
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('main-menu').style.display = 'block';
     
-    // Inicializa dados do usuário no banco
     const userRef = database.ref('users/' + user.uid);
+    
+    // Sincroniza dados do perfil (Moedas, Nome, etc)
     userRef.on('value', snap => {
         let data = snap.val();
         if (!data) {
@@ -50,54 +51,91 @@ function handleAuth(user) {
             };
             userRef.set(data);
         }
-        updateUI(data);
+        updateProfileUI(data);
     });
+
+    // Escuta Convites de Duelo em tempo real
+    listenForInvites(user.uid);
 }
 
-function updateUI(data) {
+function updateProfileUI(data) {
     document.getElementById('user-name').innerText = data.name;
     document.getElementById('user-photo').src = data.photo;
     document.getElementById('user-coins-display').innerText = "💰 " + data.coins;
     document.getElementById('my-uid-display').innerText = data.uid;
 }
 
-function showTab(id) {
-    document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-    document.getElementById(id).style.display = 'block';
+// --- LOGICA DE DUELO / AMIGOS ---
+function listenForInvites(myUid) {
+    database.ref(`invites/${myUid}`).on('value', snap => {
+        const invite = snap.val();
+        if (invite) {
+            if (confirm(`Desafio de ${invite.fromName}! Aceitar aposta de 50 moedas?`)) {
+                roomName = invite.room;
+                playerID = "p2";
+                database.ref(`invites/${myUid}`).remove();
+                enterRoom();
+            }
+        }
+    });
 }
 
-// --- SISTEMA DE JOGO & MOEDAS ---
-document.getElementById('createBtn').onclick = () => {
-    const input = document.getElementById('roomInput').value.trim();
-    if (!input) return alert("Dê um nome à sala!");
+document.getElementById('addFriendBtn').onclick = () => {
+    const friendUid = document.getElementById('addFriendInput').value.trim();
+    if (!friendUid || friendUid === currentUser.uid) return alert("ID inválido");
     
-    database.ref('users/' + currentUser.uid + '/coins').get().then(snap => {
-        if (snap.val() < 50) return alert("Moedas insuficientes! (Custo: 50)");
-        
-        roomName = input.toLowerCase();
+    // Envia convite de duelo direto
+    const inviteData = {
+        fromName: currentUser.displayName || "Convidado",
+        fromUid: currentUser.uid,
+        room: "duelo-" + Math.random().toString(36).substring(7)
+    };
+    
+    database.ref(`invites/${friendUid}`).set(inviteData).then(() => {
+        alert("Desafio enviado!");
+        roomName = inviteData.room;
         playerID = "p1";
         initRoom();
     });
 };
 
-document.getElementById('joinBtn').onclick = () => {
-    roomName = document.getElementById('roomInput').value.trim().toLowerCase();
-    playerID = "p2";
-    enterRoom();
+// --- LOGICA DO JOGO (PIFE) ---
+let roomName = "";
+let playerID = ""; 
+let gameState = null;
+let currentHand = [];
+let tempCard = null;
+
+document.getElementById('createBtn').onclick = () => {
+    const input = document.getElementById('roomInput').value.trim();
+    if (!input) return alert("Nome da sala!");
+    
+    // Verifica se tem moedas antes de criar
+    database.ref(`users/${currentUser.uid}/coins`).once('value', snap => {
+        if ((snap.val() || 0) < 50) return alert("Moedas insuficientes!");
+        roomName = input.toLowerCase().replace(/\s+/g, '-');
+        playerID = "p1";
+        initRoom();
+    });
 };
 
 function initRoom() {
-    const deck = generateDeck(); // Função de criar deck embaralhado
+    const suits = ['h', 'd', 'c', 's'];
+    let deck = [];
+    for (let s of suits) {
+        for (let i = 1; i <= 13; i++) deck.push(s + i.toString().padStart(2, '0'));
+    }
+    deck = deck.sort(() => Math.random() - 0.5);
+    
     const p1Hand = deck.splice(0, 9);
     const p2Hand = deck.splice(0, 9);
-    
+
     database.ref('salas/' + roomName).set({
-        turno: "p1", estado: "comprar", 
-        baralho: deck, descarte: [deck.pop()],
-        aposta: 50,
+        turno: "p1", estado: "comprar", baralho: deck, descarte: [deck.pop()], 
+        aposta: 50, vencedor: null,
         jogadores: { 
-            p1: { name: currentUser.displayName, uid: currentUser.uid, mao: p1Hand, ativo: true }, 
-            p2: { name: "", uid: "", mao: p2Hand, ativo: false } 
+            p1: { uid: currentUser.uid, mao: p1Hand, ativo: true }, 
+            p2: { uid: "", mao: p2Hand, ativo: false } 
         }
     }).then(enterRoom);
 }
@@ -107,19 +145,15 @@ function enterRoom() {
     const roomRef = database.ref(`salas/${roomName}`);
     
     if (playerID === "p2") {
-        roomRef.child('jogadores/p2').update({ 
-            name: currentUser.displayName || "Convidado", 
-            uid: currentUser.uid, 
-            ativo: true 
-        });
+        roomRef.child('jogadores/p2').update({ uid: currentUser.uid, ativo: true });
     }
 
     roomRef.on('value', snapshot => {
         gameState = snapshot.val();
-        if (!gameState) return;
+        if (!gameState) { location.reload(); return; }
         
         if (gameState.vencedor) {
-            handleEndGame(gameState.vencedor);
+            handleVictory(gameState.vencedor);
             return;
         }
 
@@ -130,32 +164,22 @@ function enterRoom() {
     });
 }
 
-function handleEndGame(vid) {
-    const v_uid = gameState.jogadores[vid].uid;
-    const aposta = gameState.aposta;
+function handleVictory(vid) {
+    const isWinner = (playerID === vid);
+    const aposta = gameState.aposta || 50;
 
-    if (currentUser.uid === v_uid) {
-        alert("VOCÊ VENCEU E GANHOU " + (aposta * 2) + " MOEDAS!");
-        // Adiciona moedas ao vencedor
-        database.ref('users/' + v_uid + '/coins').transaction(c => (c || 0) + (aposta * 2));
-    } else {
-        alert("VOCÊ PERDEU " + aposta + " MOEDAS.");
-        // Remove moedas de quem perdeu (já foi removido na entrada ou remove agora)
-        database.ref('users/' + currentUser.uid + '/coins').transaction(c => (c || 0) - aposta);
-    }
+    // Sistema de Moedas: Transação segura
+    database.ref(`users/${currentUser.uid}/coins`).transaction(current => {
+        return isWinner ? (current || 0) + aposta : (current || 0) - aposta;
+    });
 
-    database.ref(`salas/${roomName}`).remove();
-    location.reload();
+    alert(isWinner ? `VOCÊ GANHOU ${aposta} MOEDAS!` : `VOCÊ PERDEU ${aposta} MOEDAS.`);
+    
+    setTimeout(() => {
+        database.ref(`salas/${roomName}`).remove();
+        location.reload();
+    }, 2000);
 }
 
-// --- SISTEMA DE AMIGOS (Simples) ---
-document.getElementById('addFriendBtn').onclick = () => {
-    const friendUid = document.getElementById('addFriendInput').value.trim();
-    if (friendUid === currentUser.uid) return alert("Você não pode ser seu próprio amigo!");
-    
-    database.ref(`users/${currentUser.uid}/friends/${friendUid}`).set(true);
-    alert("Amigo adicionado!");
-};
-
-// --- RENDER & REGRAS (Aproveite o código que já funciona) ---
-// Use suas funções canWin(), isValidGroup(), handleDiscard() do código anterior aqui.
+// Funções de Renderização e Regras (isValidGroup, canWin, handleDiscard)
+// Continuam as mesmas da sua versão estável anterior...
