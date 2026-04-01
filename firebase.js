@@ -8,11 +8,12 @@ const firebaseConfig = {
     appId: "1:45522667511:web:55242fdc999ff84fa290f2"
 };
 
-// Inicializa se não existir
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-// Expõe para todas as abas e scripts
+// Força as variáveis para o window para as outras páginas acharem
 window.auth = firebase.auth();
 window.database = firebase.database();
+
+console.log("Firebase carregado com sucesso!");
