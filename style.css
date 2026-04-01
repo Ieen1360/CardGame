@@ -1,18 +1,19 @@
-body { margin: 0; background: #1a472a; color: white; font-family: sans-serif; text-align: center; }
-#lobby { padding: 100px; }
+body { margin: 0; background: #1a472a; color: white; font-family: sans-serif; text-align: center; overflow: hidden; }
+#lobby { padding-top: 100px; }
 input { padding: 10px; border-radius: 5px; border: none; }
-button { padding: 10px 20px; cursor: pointer; background: #f1c40f; border: none; font-weight: bold; margin: 5px; }
+button { padding: 10px 20px; cursor: pointer; background: #f1c40f; border: none; font-weight: bold; border-radius: 5px; }
 
-#scoreboard { display: flex; justify-content: space-around; background: rgba(0,0,0,0.4); padding: 15px; font-size: 20px; }
-#table { height: 80vh; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
-.hand { display: flex; justify-content: center; gap: 5px; height: 130px; }
-.card-img { width: 90px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+#status-bar { background: rgba(0,0,0,0.5); padding: 15px; font-size: 20px; }
+#table { height: 85vh; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
+
+.hand { display: flex; justify-content: center; gap: 5px; height: 140px; }
+.card-img { width: 95px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
 .card-img:hover { transform: translateY(-10px); }
-.glow { border: 3px solid gold; box-shadow: 0 0 10px gold; }
+.glow { border: 3px solid gold; box-shadow: 0 0 15px gold; }
 
-.center-area { display: flex; justify-content: center; align-items: center; gap: 30px; position: relative; }
-.slot img { width: 100px; border-radius: 5px; }
-#history-box { position: absolute; left: 0; font-size: 12px; background: rgba(0,0,0,0.2); padding: 10px; width: 100px; }
+.center { display: flex; justify-content: center; align-items: center; gap: 50px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+.slot img { width: 110px; border-radius: 5px; }
 
-.modal { position: fixed; inset:0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; }
-.modal-content { background: #2c3e50; padding: 20px; border-radius: 10px; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 100; }
+.modal-content { background: #2c3e50; padding: 30px; border-radius: 15px; display: flex; flex-direction: column; align-items: center; }
