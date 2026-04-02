@@ -1,16 +1,15 @@
 const firebaseConfig = {
-    apiKey: "AIzaSyAMdBDtEDuV23aJelAMlslqEoikZ6VXMIU",
-    authDomain: "cardgame-e2501.firebaseapp.com",
-    databaseURL: "https://cardgame-e2501-default-rtdb.firebaseio.com",
-    projectId: "cardgame-e2501",
-    storageBucket: "cardgame-e2501.appspot.com",
-    messagingSenderId: "45522667511",
-    appId: "1:45522667511:web:55242fdc999ff84fa290f2"
+  apiKey: "AIzaSyAMdBDtEDuV23aJelAMlslqEoikZ6VXMIU",
+  authDomain: "cardgame-e2501.firebaseapp.com",
+  databaseURL: "https://cardgame-e2501-default-rtdb.firebaseio.com",
+  projectId: "cardgame-e2501",
+  storageBucket: "cardgame-e2501.appspot.com",
+  messagingSenderId: "45522667511",
+  appId: "1:45522667511:web:55242fdc999ff84fa290f2"
 };
 
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
 
-window.auth = firebase.auth();
-window.database = firebase.database();
+// Torna o 'db' global para que o script.js possa acessar
+window.db = firebase.database();
